@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .neo-shadow {
+    box-shadow: 3px 3px 0px 0px #1e293b;
+  }
+  .neo-shadow-sm {
+    box-shadow: 2px 2px 0px 0px #1e293b;
+  }
+  .neo-shadow-lg {
+    box-shadow: 5px 5px 0px 0px #1e293b;
+  }
+  .neo-shadow-xl {
+    box-shadow: 6px 6px 0px 0px #1e293b;
+  }
+  .neo-border {
+    border: 2px solid #1e293b;
+  }
+  .neo-border-thick {
+    border: 3px solid #1e293b;
+  }
+}
+
+/* Custom scrollbar for tables & bottom sheet */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-left: 1px solid #cbd5e1;
+  border-top: 1px solid #cbd5e1;
+}
+::-webkit-scrollbar-thumb {
+  background: #64748b;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
