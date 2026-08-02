@@ -1,0 +1,44 @@
+{
+  "entities": {
+    "ActivityItem": {
+      "title": "ActivityItem",
+      "description": "Kegiatan monitoring giat nasional dan dapil",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "tahun": { "type": "string" },
+        "kategoriGiat": { "type": "string" },
+        "jenisGiat": { "type": "string" },
+        "temaGiat": { "type": "string" },
+        "namaGiat": { "type": "string" },
+        "namaPeserta": { "type": "string" },
+        "asalInstansi": { "type": "string" },
+        "segmentasiPeserta": { "type": "string" },
+        "kontak": { "type": "string" },
+        "jumlahPeserta": { "type": "number" },
+        "lokasi": { "type": "string" },
+        "tanggal": { "type": "string" },
+        "status": { "type": "string" },
+        "source": { "type": "string" },
+        "catatan": { "type": "string" }
+      },
+      "required": ["id", "namaGiat", "tahun"]
+    },
+    "AttendanceRecord": {
+      "title": "AttendanceRecord",
+      "description": "Presensi peserta kegiatan digital",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "activityId": { "type": "string" },
+        "namaPeserta": { "type": "string" },
+        "nik": { "type": "string" },
+        "kontak": { "type": "string" },
+        "instansi": { "type": "string" },
+        "jabatan": { "type": "string" },
+        "waktuHadir": { "type": "string" }
+      },
+      "required": ["id", "activityId", "namaPeserta"]
+    }
+  }
+}

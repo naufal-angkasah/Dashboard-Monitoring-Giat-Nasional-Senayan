@@ -12,7 +12,8 @@ import {
   Layers,
   ChevronLeft,
   ChevronRight,
-  Download
+  Download,
+  QrCode
 } from 'lucide-react';
 import { ActivityItem } from '../types';
 import * as XLSX from 'xlsx';
@@ -22,12 +23,14 @@ import autoTable from 'jspdf-autotable';
 interface DataTableProps {
   activities: ActivityItem[];
   onSelectActivity: (activity: ActivityItem) => void;
+  onGenerateAbsenForActivity?: (activity: ActivityItem) => void;
   userRole: string;
 }
 
 export const DataTable: React.FC<DataTableProps> = ({
-  activities,
+  activities = [],
   onSelectActivity,
+  onGenerateAbsenForActivity,
   userRole,
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -50,142 +53,129 @@ export const DataTable: React.FC<DataTableProps> = ({
   });
 
   // Pagination
-  const totalPages = Math.ceil(sortedActivities.length / itemsPerPage) || 1;
+  const totalPages = Math.ceil(sortedActivities.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedActivities = sortedActivities.slice(startIndex, startIndex + itemsPerPage);
 
   const handleSort = (field: keyof ActivityItem) => {
     if (sortField === field) {
-      setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'));
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
       setSortField(field);
-      setSortOrder('desc');
+      setSortOrder('asc');
     }
   };
 
-  // Export Excel (.xlsx)
+  // Export Excel
   const handleExportExcel = () => {
-    const exportData = sortedActivities.map((item, index) => ({
-      'No': index + 1,
-      'ID Kegiatan': item.id,
-      'Tahun': item.tahun,
-      'Kategori Giat': item.kategoriGiat,
+    const exportData = activities.map((item, idx) => ({
+      No: idx + 1,
+      ID: item.id,
+      Tahun: item.tahun,
+      Kategori: item.kategoriGiat,
       'Jenis Giat': item.jenisGiat,
       'Tema Giat': item.temaGiat,
       'Nama Kegiatan': item.namaGiat,
-      'Penanggung Jawab / Peserta': item.namaPeserta,
       'Asal Instansi': item.asalInstansi,
       'Segmentasi Peserta': item.segmentasiPeserta,
       'Jumlah Peserta': item.jumlahPeserta,
-      'Lokasi': item.lokasi,
-      'Tanggal': item.tanggal,
-      'Status': item.status,
-      'Sumber Data': item.source,
-      'Kontak': item.kontak
+      Kabupaten: item.kabupaten || 'Pacitan',
+      Lokasi: item.lokasi,
+      Tanggal: item.tanggal,
+      'Penanggung Jawab': item.namaPeserta,
+      Kontak: item.kontak,
+      Sumber: item.source,
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Laporan_Giat_Senayan');
-    XLSX.writeFile(
-      workbook, 
-      `Laporan_Giat_Senayan_${new Date().toISOString().slice(0, 10)}.xlsx`
-    );
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Giat_Senayan');
+    XLSX.writeFile(workbook, `Report_Giat_Senayan_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   // Export PDF
   const handleExportPDF = () => {
-    const doc = new jsPDF({ orientation: 'landscape' });
+    const doc = new jsPDF('landscape');
     
-    // Header Title
-    doc.setFontSize(16);
-    doc.text('LAPORAN MONITORING GIAT NASIONAL SENAYAN (MPR / DPR RI)', 14, 15);
-    
-    doc.setFontSize(10);
-    doc.text(`Tanggal Cetak: ${new Date().toLocaleDateString('id-ID')} | Total Data: ${sortedActivities.length} Kegiatan`, 14, 22);
+    doc.setFontSize(14);
+    doc.text('LAPORAN HASIL MONITORING GIAT NASIONAL (SENAYAN)', 14, 15);
+    doc.setFontSize(9);
+    doc.text(`Dicetak pada: ${new Date().toLocaleString('id-ID')} | Total: ${activities.length} Kegiatan`, 14, 22);
 
-    const tableColumn = [
-      'No', 'ID', 'Tahun', 'Kategori', 'Jenis Giat', 'Nama Kegiatan', 'Instansi', 'Segmentasi', 'Peserta', 'Tanggal'
-    ];
-
-    const tableRows = sortedActivities.map((item, idx) => [
+    const tableColumn = ['No', 'Tahun', 'Kategori', 'Nama Kegiatan', 'Instansi', 'Segmentasi', 'Peserta', 'Lokasi & Tanggal'];
+    const tableRows = activities.map((item, idx) => [
       idx + 1,
-      item.id,
       item.tahun,
       item.kategoriGiat,
-      item.jenisGiat,
-      item.namaGiat.length > 28 ? item.namaGiat.substring(0, 26) + '...' : item.namaGiat,
-      item.asalInstansi.length > 20 ? item.asalInstansi.substring(0, 18) + '...' : item.asalInstansi,
+      item.namaGiat.length > 35 ? item.namaGiat.substring(0, 35) + '...' : item.namaGiat,
+      item.asalInstansi,
       item.segmentasiPeserta,
       item.jumlahPeserta.toLocaleString('id-ID'),
-      item.tanggal
+      `${item.lokasi} (${item.tanggal})`
     ]);
 
     autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
       startY: 28,
-      styles: { fontSize: 8, cellPadding: 2 },
-      headStyles: { fillColor: [24, 24, 27], textColor: [255, 255, 255], fontStyle: 'bold' }
+      theme: 'grid',
+      headStyles: { fillColor: [15, 23, 42], textColor: [251, 191, 36], fontSize: 8 },
+      bodyStyles: { fontSize: 7 },
     });
 
-    doc.save(`Laporan_Giat_Senayan_${new Date().toISOString().slice(0, 10)}.pdf`);
+    doc.save(`Laporan_Monitoring_Senayan_${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
   return (
-    <div className="bg-white border-2 border-slate-900 neo-shadow p-4 mb-8 rounded-xs">
-      
-      {/* HEADER TABLE & EXPORT ACTION BUTTONS */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 mb-4 border-b-2 border-slate-900">
+    <div className="bg-white border border-slate-200/80 p-5 mb-8 rounded-2xl shadow-xs">
+      {/* HEADER SECTION */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-4 border-b border-slate-100">
         <div>
-          <div className="flex items-center gap-2">
-            <div className="p-1 bg-amber-400 text-slate-900 border border-slate-900 neo-shadow-sm rounded-xs">
-              <Layers className="w-4 h-4" />
-            </div>
-            <h3 className="font-black text-base uppercase text-slate-900 tracking-tight">
-              Detail Data Monitoring Kegiatan Nasional
-            </h3>
-          </div>
-          <p className="text-[11px] font-mono text-slate-600 mt-0.5">
-            Daftar kegiatan ter-sinkronisasi dengan Google Form & Spreadsheet
+          <h3 className="font-bold text-base text-slate-900 tracking-tight flex items-center gap-2">
+            <span>Daftar Giat Nasional & Presensi Digital</span>
+            <span className="bg-blue-50 text-blue-700 border border-blue-200/60 text-xs font-semibold px-2.5 py-0.5 rounded-full">
+              {activities.length} Data
+            </span>
+          </h3>
+          <p className="text-xs text-slate-500">
+            Daftar kegiatan ter-sinkronisasi dengan Firestore & Google Spreadsheet
           </p>
         </div>
 
         {/* EXPORT BUTTONS */}
         <div className="flex items-center gap-2 flex-wrap">
           <motion.button
-            whileHover={{ y: -2 }}
-            whileTap={{ y: 0 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={handleExportExcel}
-            className="flex items-center gap-1.5 bg-emerald-700 text-white px-3.5 py-1.5 text-xs font-bold border-2 border-slate-900 neo-shadow-sm hover:bg-emerald-800 cursor-pointer"
+            className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 text-xs font-semibold rounded-xl cursor-pointer transition-all shadow-xs"
           >
-            <FileSpreadsheet className="w-4 h-4 text-amber-200" />
+            <FileSpreadsheet className="w-4 h-4" />
             <span>Export Excel</span>
           </motion.button>
 
           <motion.button
-            whileHover={{ y: -2 }}
-            whileTap={{ y: 0 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={handleExportPDF}
-            className="flex items-center gap-1.5 bg-rose-700 text-white px-3.5 py-1.5 text-xs font-bold border-2 border-slate-900 neo-shadow-sm hover:bg-rose-800 cursor-pointer"
+            className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-900 text-white px-3.5 py-2 text-xs font-semibold rounded-xl cursor-pointer transition-all shadow-xs"
           >
-            <Printer className="w-4 h-4 text-amber-200" />
+            <Printer className="w-4 h-4" />
             <span>Cetak PDF</span>
           </motion.button>
         </div>
       </div>
 
       {/* TABLE CONTAINER WITH STICKY COLUMN FOR MOBILE */}
-      <div className="overflow-x-auto relative border-2 border-slate-900 neo-shadow-sm">
+      <div className="overflow-x-auto relative border border-slate-200/80 rounded-xl">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="bg-[#1E293B] text-slate-100 font-bold uppercase text-[11px] font-mono border-b-2 border-slate-900">
-              <th className="p-3 border-r border-slate-700 w-10 text-center">No</th>
+            <tr className="bg-slate-50 text-slate-700 font-semibold uppercase text-[11px] tracking-wider border-b border-slate-200">
+              <th className="p-3 w-10 text-center">No</th>
               
-              {/* STICKY COLUMN FOR NAMA KEGIATAN ON MOBILE */}
               <th 
                 onClick={() => handleSort('namaGiat')}
-                className="p-3 border-r border-slate-700 min-w-[220px] sticky left-0 bg-[#1E293B] z-10 cursor-pointer hover:text-amber-300"
+                className="p-3 min-w-[220px] sticky left-0 bg-slate-50 z-10 cursor-pointer hover:text-blue-600"
               >
                 <div className="flex items-center justify-between">
                   <span>Nama Kegiatan</span>
@@ -195,26 +185,26 @@ export const DataTable: React.FC<DataTableProps> = ({
 
               <th 
                 onClick={() => handleSort('tahun')}
-                className="p-3 border-r border-slate-700 min-w-[70px] text-center cursor-pointer hover:text-amber-300"
+                className="p-3 border-r border-slate-200/60 min-w-[70px] text-center cursor-pointer hover:text-blue-600"
               >
                 Tahun
               </th>
 
               <th 
                 onClick={() => handleSort('kategoriGiat')}
-                className="p-3 border-r border-slate-700 min-w-[90px] text-center cursor-pointer hover:text-amber-300"
+                className="p-3 border-r border-slate-200/60 min-w-[90px] text-center cursor-pointer hover:text-blue-600"
               >
                 Kategori
               </th>
 
-              <th className="p-3 border-r border-slate-700 min-w-[140px]">Jenis Giat</th>
-              <th className="p-3 border-r border-slate-700 min-w-[140px]">Tema Giat</th>
-              <th className="p-3 border-r border-slate-700 min-w-[160px]">Asal Instansi</th>
-              <th className="p-3 border-r border-slate-700 min-w-[140px]">Segmentasi</th>
+              <th className="p-3 border-r border-slate-200/60 min-w-[130px]">Jenis Giat</th>
+              <th className="p-3 border-r border-slate-200/60 min-w-[130px]">Tema Giat</th>
+              <th className="p-3 border-r border-slate-200/60 min-w-[150px]">Asal Instansi</th>
+              <th className="p-3 border-r border-slate-200/60 min-w-[120px]">Segmentasi</th>
               
               <th 
                 onClick={() => handleSort('jumlahPeserta')}
-                className="p-3 border-r border-slate-700 min-w-[110px] text-right cursor-pointer hover:text-amber-300"
+                className="p-3 border-r border-slate-200/60 min-w-[110px] text-right cursor-pointer hover:text-blue-600"
               >
                 <div className="flex items-center justify-end gap-1">
                   <span>Peserta</span>
@@ -222,8 +212,8 @@ export const DataTable: React.FC<DataTableProps> = ({
                 </div>
               </th>
 
-              <th className="p-3 border-r border-slate-700 min-w-[110px] text-center">Sumber</th>
-              <th className="p-3 min-w-[90px] text-center">Aksi</th>
+              <th className="p-3 border-r border-slate-200/60 min-w-[110px] text-center">Sumber</th>
+              <th className="p-3 min-w-[110px] text-center">Aksi & Absen</th>
             </tr>
           </thead>
 
@@ -238,13 +228,12 @@ export const DataTable: React.FC<DataTableProps> = ({
               paginatedActivities.map((activity, index) => (
                 <tr 
                   key={activity.id}
-                  className="hover:bg-slate-100/90 transition-colors border-b border-slate-200"
+                  className="hover:bg-slate-100 transition-colors border-b border-slate-200"
                 >
                   <td className="p-3 font-mono font-bold text-center border-r border-slate-200 text-slate-600">
                     {startIndex + index + 1}
                   </td>
 
-                  {/* STICKY COLUMN FOR NAMA KEGIATAN */}
                   <td className="p-3 font-bold text-slate-900 border-r border-slate-200 sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">
                     <div>
                       <span className="hover:underline cursor-pointer hover:text-blue-700" onClick={() => onSelectActivity(activity)}>
@@ -260,55 +249,67 @@ export const DataTable: React.FC<DataTableProps> = ({
                     {activity.tahun}
                   </td>
 
-                  <td className="p-3 text-center border-r border-slate-200">
-                    <span className={`inline-block text-[10px] font-mono font-bold px-2 py-0.5 border border-slate-900 rounded-xs ${
+                  <td className="p-3 text-center border-r border-slate-200/60">
+                    <span className={`inline-block text-[10px] font-extrabold px-2.5 py-0.5 rounded-md shadow-xs ${
                       activity.kategoriGiat === 'MPR'
                         ? 'bg-blue-600 text-white'
                         : activity.kategoriGiat === 'DPR'
-                        ? 'bg-rose-600 text-white'
+                        ? 'bg-rose-500 text-white'
                         : 'bg-emerald-600 text-white'
                     }`}>
                       {activity.kategoriGiat}
                     </span>
                   </td>
 
-                  <td className="p-3 font-semibold text-slate-800 border-r border-slate-200 text-[11px]">
+                  <td className="p-3 font-semibold text-slate-800 border-r border-slate-200/60 text-[11px]">
                     {activity.jenisGiat}
                   </td>
 
-                  <td className="p-3 text-slate-700 border-r border-slate-200 text-[11px]">
+                  <td className="p-3 text-slate-700 border-r border-slate-200/60 text-[11px]">
                     {activity.temaGiat}
                   </td>
 
-                  <td className="p-3 font-medium text-slate-900 border-r border-slate-200 text-[11px]">
+                  <td className="p-3 font-medium text-slate-900 border-r border-slate-200/60 text-[11px]">
                     {activity.asalInstansi}
                   </td>
 
-                  <td className="p-3 border-r border-slate-200">
-                    <span className="bg-slate-100 text-slate-800 text-[10px] font-mono font-bold px-2 py-0.5 border border-slate-300 rounded-xs">
+                  <td className="p-3 border-r border-slate-200/60">
+                    <span className="bg-slate-100 text-slate-700 text-[11px] font-medium px-2.5 py-1 rounded-full border border-slate-200/80">
                       {activity.segmentasiPeserta}
                     </span>
                   </td>
 
-                  <td className="p-3 font-bold text-slate-900 text-right border-r border-slate-200 font-mono text-sm">
+                  <td className="p-3 font-bold text-slate-900 text-right border-r border-slate-200/60 font-sans text-sm tracking-tight">
                     {activity.jumlahPeserta.toLocaleString('id-ID')}
                   </td>
 
-                  <td className="p-3 text-center border-r border-slate-200">
-                    <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold bg-emerald-50 text-emerald-900 px-2 py-0.5 border border-emerald-300 rounded-xs">
-                      <Sparkles className="w-2.5 h-2.5 text-emerald-600" />
+                  <td className="p-3 text-center border-r border-slate-200/60">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-emerald-50/80 text-emerald-700 px-2.5 py-0.5 border border-emerald-300/80 rounded-full shadow-xs">
+                      <Sparkles className="w-3 h-3 text-emerald-600" />
                       {activity.source}
                     </span>
                   </td>
 
                   <td className="p-3 text-center">
-                    <button
-                      onClick={() => onSelectActivity(activity)}
-                      className="bg-slate-900 text-white hover:bg-amber-400 hover:text-slate-900 p-1.5 border border-slate-900 neo-shadow-sm cursor-pointer transition-colors rounded-xs"
-                      title="Lihat Rincian Kegiatan"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center justify-center gap-1.5">
+                      <button
+                        onClick={() => onSelectActivity(activity)}
+                        className="bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white p-2 border border-blue-200 rounded-xl cursor-pointer transition-all shadow-xs"
+                        title="Lihat Detail & Notulensi"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+
+                      {onGenerateAbsenForActivity && (
+                        <button
+                          onClick={() => onGenerateAbsenForActivity(activity)}
+                          className="bg-amber-50 text-amber-700 hover:bg-amber-500 hover:text-white p-2 border border-amber-200 rounded-xl cursor-pointer transition-all shadow-xs"
+                          title="Generate QR & Link Absen"
+                        >
+                          <QrCode className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))
@@ -318,48 +319,31 @@ export const DataTable: React.FC<DataTableProps> = ({
       </div>
 
       {/* PAGINATION FOOTER */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4 pt-3 border-t-2 border-slate-900 font-mono text-xs">
+      <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
         <div className="text-slate-600">
-          Menampilkan <strong>{startIndex + 1}</strong> - <strong>{Math.min(startIndex + itemsPerPage, sortedActivities.length)}</strong> dari <strong>{sortedActivities.length}</strong> Kegiatan
+          Menampilkan {paginatedActivities.length > 0 ? startIndex + 1 : 0} - {Math.min(startIndex + itemsPerPage, sortedActivities.length)} dari {sortedActivities.length} data kegiatan
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1">
-            <span className="text-slate-500 text-[11px]">Baris:</span>
-            <select
-              value={itemsPerPage}
-              onChange={(e) => {
-                setItemsPerPage(Number(e.target.value));
-                setCurrentPage(1);
-              }}
-              className="bg-white border border-slate-800 p-1 font-bold text-xs"
-            >
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-              <option value={50}>50</option>
-            </select>
-          </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className="p-1.5 bg-slate-100 text-slate-800 border border-slate-900 rounded disabled:opacity-40 cursor-pointer"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
 
-          <div className="flex items-center gap-1">
-            <button
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
-              className="p-1 bg-white border border-slate-800 disabled:opacity-30 cursor-pointer hover:bg-amber-200"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <span className="px-2 font-bold text-slate-800">
-              {currentPage} / {totalPages}
-            </span>
-            <button
-              disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
-              className="p-1 bg-white border border-slate-800 disabled:opacity-30 cursor-pointer hover:bg-amber-200"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
+          <span className="font-bold px-2 text-slate-900">
+            Halaman {currentPage} dari {totalPages || 1}
+          </span>
+
+          <button
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages || totalPages === 0}
+            className="p-1.5 bg-slate-100 text-slate-800 border border-slate-900 rounded disabled:opacity-40 cursor-pointer"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </div>

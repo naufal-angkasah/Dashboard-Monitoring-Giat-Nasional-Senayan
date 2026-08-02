@@ -1,6 +1,6 @@
 {
   "name": "Dashboard Monitoring Giat Nasional Senayan",
-  "description": "Dashboard Monitoring Giat Nasional Senayan (MPR, DPR, & EBY Connect) berbasis Neo-Brutalism dengan analisis statistik & integrasi data.",
+  "description": "Dashboard Executive Monitoring Giat Senayan (MPR, DPR, & EBY Connect) dengan analisis statistik real-time & integrasi data.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

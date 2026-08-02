@@ -1,22 +1,24 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, UserCheck, Shield, KeyRound, Lock, User } from 'lucide-react';
+import { X, Shield, Lock, User, KeyRound, Sparkles, LogIn, CheckCircle2 } from 'lucide-react';
 import { UserRole } from '../types';
 
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentRole: UserRole;
-  onSwitchRole: (role: UserRole) => void;
+  onLoginSuccess: (role: UserRole, username: string) => void;
 }
 
 export const LoginModal: React.FC<LoginModalProps> = ({
   isOpen,
   onClose,
   currentRole,
-  onSwitchRole,
+  onLoginSuccess,
 }) => {
-  const [selectedRole, setSelectedRole] = useState<UserRole>(currentRole);
+  const [selectedRole, setSelectedRole] = useState<'admin' | 'pimpinan'>(
+    currentRole === 'admin' ? 'admin' : 'pimpinan'
+  );
   const [username, setUsername] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string>('');
@@ -27,133 +29,199 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     e.preventDefault();
     setErrorMsg('');
 
-    // Quick simulated login validation
     if (selectedRole === 'admin') {
       if (password && password !== 'admin123' && password !== 'admin') {
-        setErrorMsg('Password salah! Gunakan: admin123 atau kosongkan untuk demo.');
+        setErrorMsg('PIN Admin salah! Gunakan: admin123');
         return;
       }
     }
 
-    onSwitchRole(selectedRole);
+    const finalUsername = username.trim() || (selectedRole === 'admin' ? 'Operator Tim Teknis' : 'Dr. H. Anggota DPR');
+    onLoginSuccess(selectedRole, finalUsername);
+    onClose();
+  };
+
+  const handleInstantLogin = (role: 'admin' | 'pimpinan') => {
+    const defaultName = role === 'admin' ? 'Operator Tim Teknis' : 'Dr. H. Anggota DPR';
+    onLoginSuccess(role, defaultName);
     onClose();
   };
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          className="bg-[#FFFDF9] border-4 border-black neo-shadow-xl max-w-md w-full"
+          className="bg-white border border-slate-200 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden font-sans"
         >
           {/* Header */}
-          <div className="bg-[#18181B] text-white p-4 border-b-4 border-black flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Shield className="w-5 h-5 text-yellow-300" />
-              <h3 className="font-black text-sm uppercase font-mono text-white">
-                Autentikasi Pengguna & Akses Role
-              </h3>
+          <div className="p-5 pb-4 border-b border-slate-100 flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-600 text-white rounded-xl flex items-center justify-center shadow-md shadow-blue-500/20 shrink-0">
+                <Lock className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-base text-slate-900 tracking-tight leading-snug">
+                  AUTENTIKASI & KELOLA AKUN
+                </h3>
+                <p className="text-xs text-slate-500 font-medium">
+                  Sistem Autentikasi Giat Senayan & EBY Connect
+                </p>
+              </div>
             </div>
             <button
               onClick={onClose}
-              className="p-1 bg-white text-black hover:bg-yellow-300 border border-black cursor-pointer neo-shadow-sm"
+              className="p-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 cursor-pointer transition-colors"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
 
-          <form onSubmit={handleLoginSubmit} className="p-6 space-y-4 font-sans text-xs">
-            <div className="text-center pb-2">
-              <span className="text-[10px] font-mono font-bold uppercase text-slate-500">
-                Pilih Hak Akses Pengguna:
-              </span>
-              <div className="grid grid-cols-2 gap-3 mt-2">
-                <button
-                  type="button"
-                  onClick={() => setSelectedRole('pimpinan')}
-                  className={`p-3 font-black text-xs border-2 border-black neo-shadow-sm flex flex-col items-center gap-1 cursor-pointer transition-all ${
-                    selectedRole === 'pimpinan'
-                      ? 'bg-[#FACC15] text-black -translate-y-0.5'
-                      : 'bg-white text-slate-600'
-                  }`}
-                >
-                  <User className="w-5 h-5" />
-                  <span>Pimpinan / Executive</span>
-                  <span className="text-[9px] font-mono font-normal">Viewer & Export Report</span>
-                </button>
+          <div className="p-5 space-y-4 text-xs">
+            {/* Role Switcher Tabs */}
+            <div className="bg-slate-100 p-1 rounded-xl grid grid-cols-2 gap-1 font-semibold">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedRole('admin');
+                  setErrorMsg('');
+                }}
+                className={`py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  selectedRole === 'admin'
+                    ? 'bg-blue-600 text-white shadow-xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Shield className="w-4 h-4" />
+                <span>Admin / Operator</span>
+              </button>
 
-                <button
-                  type="button"
-                  onClick={() => setSelectedRole('admin')}
-                  className={`p-3 font-black text-xs border-2 border-black neo-shadow-sm flex flex-col items-center gap-1 cursor-pointer transition-all ${
-                    selectedRole === 'admin'
-                      ? 'bg-[#2563EB] text-white -translate-y-0.5'
-                      : 'bg-white text-slate-600'
-                  }`}
-                >
-                  <Shield className="w-5 h-5" />
-                  <span>Staff / Admin</span>
-                  <span className="text-[9px] font-mono font-normal">Full Sync & Edit Master</span>
-                </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedRole('pimpinan');
+                  setErrorMsg('');
+                }}
+                className={`py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  selectedRole === 'pimpinan'
+                    ? 'bg-blue-600 text-white shadow-xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <User className="w-4 h-4" />
+                <span>Pimpinan / User</span>
+              </button>
+            </div>
+
+            {/* Info Box Card */}
+            <div className="bg-sky-50/70 border border-sky-200/80 rounded-xl p-3.5 text-sky-900 flex items-start gap-2.5">
+              <Sparkles className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <h4 className="font-bold text-xs text-slate-900">
+                  {selectedRole === 'pimpinan' ? 'Hak Akses Pimpinan / Executive:' : 'Hak Akses Admin Operator:'}
+                </h4>
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  {selectedRole === 'pimpinan'
+                    ? 'Tampilan khusus Pimpinan: Fokus pada program Terealisasi (Selesai 100%), Ringkasan KPI Eksekutif, Peta Persebaran & Laporan Realisasi.'
+                    : 'Kelola Master Data (Tambah, Edit, Hapus), Upload Excel, Atur Status Program (Perencanaan/Berjalan/Selesai), & Sync Spreadsheets.'}
+                </p>
               </div>
             </div>
 
             {errorMsg && (
-              <div className="bg-red-100 border border-red-600 text-red-800 p-2 font-mono text-[11px] font-bold">
+              <div className="bg-rose-50 border border-rose-200 text-rose-700 p-3 rounded-xl text-xs font-medium">
                 {errorMsg}
               </div>
             )}
 
-            <div>
-              <label className="block font-black uppercase text-slate-700 mb-1">
-                Username / NIP / ID Pengguna:
-              </label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder={selectedRole === 'admin' ? 'admin_senayan' : 'pimpinan_mpr_dpr'}
-                className="w-full bg-white border-2 border-black p-2 font-bold neo-shadow-sm"
-              />
-            </div>
+            <form onSubmit={handleLoginSubmit} className="space-y-3.5">
+              {/* Username Input */}
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Nama Pengguna / Identitas
+                </label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder={selectedRole === 'pimpinan' ? 'Contoh: Dr. H. Anggota DPR' : 'Contoh: Operator Tim Teknis'}
+                    className="w-full bg-slate-50 border border-slate-200 pl-9 pr-3 py-2.5 rounded-xl font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-xs"
+                  />
+                </div>
+              </div>
 
-            <div>
-              <label className="block font-black uppercase text-slate-700 mb-1">
-                Password Akses:
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="🔑 Biarkan kosong atau ketik sembarang"
-                className="w-full bg-white border-2 border-black p-2 font-bold neo-shadow-sm"
-              />
-              <span className="text-[10px] font-mono text-slate-500 mt-1 block">
-                *Demo Mode: Anda dapat langsung berpindah role tanpa sandi.
-              </span>
-            </div>
+              {/* Password Input (Admin Only) */}
+              {selectedRole === 'admin' && (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="font-semibold text-slate-700 block">
+                      Kata Sandi Admin
+                    </label>
+                    <span className="bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded text-[10px]">
+                      PIN: admin123
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Masukkan PIN Admin (admin123)..."
+                      className="w-full bg-slate-50 border border-slate-200 pl-9 pr-3 py-2.5 rounded-xl font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-xs"
+                    />
+                  </div>
+                </div>
+              )}
 
-            <div className="pt-2 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="bg-slate-200 text-black px-4 py-2 font-bold text-xs border-2 border-black neo-shadow cursor-pointer"
-              >
-                Batal
-              </button>
-
+              {/* Submit Button */}
               <button
                 type="submit"
-                className="bg-black text-white px-5 py-2 font-black text-xs border-2 border-black neo-shadow hover:bg-yellow-400 hover:text-black cursor-pointer"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 cursor-pointer transition-all text-xs mt-2"
               >
-                Masuk Sebagai {selectedRole === 'admin' ? 'Admin' : 'Pimpinan'}
+                <LogIn className="w-4 h-4" />
+                <span>Masuk sebagai {selectedRole === 'pimpinan' ? 'Pimpinan' : 'Admin'}</span>
               </button>
+            </form>
+
+            {/* Instant Login Section */}
+            <div className="pt-2">
+              <div className="relative flex py-2 items-center">
+                <div className="flex-grow border-t border-slate-200"></div>
+                <span className="shrink mx-3 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                  MASUK INSTAN (TANPA KETIK)
+                </span>
+                <div className="flex-grow border-t border-slate-200"></div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5 mt-2">
+                <button
+                  type="button"
+                  onClick={() => handleInstantLogin('admin')}
+                  className="bg-slate-50 hover:bg-blue-50 text-blue-700 border border-slate-200 hover:border-blue-300 py-2.5 px-3 rounded-xl font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer text-xs"
+                >
+                  <CheckCircle2 className="w-4 h-4 text-blue-600" />
+                  <span>Login Admin</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleInstantLogin('pimpinan')}
+                  className="bg-slate-50 hover:bg-sky-50 text-sky-700 border border-slate-200 hover:border-sky-300 py-2.5 px-3 rounded-xl font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer text-xs"
+                >
+                  <CheckCircle2 className="w-4 h-4 text-sky-600" />
+                  <span>Login Pimpinan</span>
+                </button>
+              </div>
             </div>
-          </form>
+          </div>
         </motion.div>
       </div>
     </AnimatePresence>
   );
 };
+

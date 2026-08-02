@@ -44,7 +44,7 @@ export const ExcelUploadModal: React.FC<ExcelUploadModalProps> = ({
         const worksheet = workbook.Sheets[firstSheetName];
         const json: any[] = XLSX.utils.sheet_to_json(worksheet);
 
-        const parsedActivities: ActivityItem[] = json.map((row, idx) => ({
+        const parsedActivities: ActivityItem[] = (json || []).map((row, idx) => ({
           id: row['ID Kegiatan'] || `G-EXCEL-${Math.floor(100 + Math.random() * 900)}`,
           tahun: String(row['Tahun'] || '2026'),
           kategoriGiat: (row['Kategori Giat'] || 'DPR') as any,
@@ -126,39 +126,44 @@ export const ExcelUploadModal: React.FC<ExcelUploadModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          className="bg-[#FFFDF9] border-4 border-black neo-shadow-xl max-w-lg w-full"
+          className="bg-white border border-slate-200/80 shadow-2xl max-w-lg w-full rounded-2xl overflow-hidden"
         >
           {/* Header */}
-          <div className="bg-[#2563EB] text-white p-4 border-b-4 border-black flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <FileSpreadsheet className="w-5 h-5 text-yellow-300" />
-              <h3 className="font-black text-sm uppercase font-mono">
-                Upload File Excel (.xlsx / .csv)
-              </h3>
+          <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white p-5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/10 backdrop-blur-md rounded-xl">
+                <FileSpreadsheet className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm text-white">
+                  Upload File Excel (.xlsx / .csv)
+                </h3>
+                <p className="text-xs text-blue-100">Import data kegiatan secara massal</p>
+              </div>
             </div>
             <button
               onClick={onClose}
-              className="p-1 bg-white text-black hover:bg-yellow-300 border border-black cursor-pointer neo-shadow-sm"
+              className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
 
           <div className="p-6 space-y-5">
             {successCount !== null ? (
               <div className="text-center space-y-3 py-4">
-                <div className="w-14 h-14 bg-[#10B981] text-white border-2 border-black neo-shadow rounded-full mx-auto flex items-center justify-center">
-                  <CheckCircle2 className="w-8 h-8" />
+                <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full mx-auto flex items-center justify-center">
+                  <CheckCircle2 className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg font-black uppercase text-slate-900">
+                <h3 className="text-base font-bold text-slate-900">
                   {successCount} Data Berhasil Diimport!
                 </h3>
-                <p className="text-xs font-mono text-slate-600">
+                <p className="text-xs text-slate-500">
                   Data dari file Excel telah digabungkan ke dalam database live dashboard.
                 </p>
                 <button
@@ -166,19 +171,19 @@ export const ExcelUploadModal: React.FC<ExcelUploadModalProps> = ({
                     setSuccessCount(null);
                     onClose();
                   }}
-                  className="bg-black text-white px-5 py-2 font-black text-xs border-2 border-black neo-shadow mt-2 cursor-pointer"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 font-semibold text-xs rounded-xl shadow-xs cursor-pointer transition-all"
                 >
                   Tutup
                 </button>
               </div>
             ) : (
               <>
-                <div className="border-2 border-dashed border-black bg-yellow-50 p-6 text-center neo-shadow-sm relative">
+                <div className="border-2 border-dashed border-slate-200 hover:border-blue-400 bg-slate-50/50 p-6 text-center rounded-2xl transition-all relative">
                   <UploadCloud className="w-10 h-10 mx-auto text-blue-600 mb-2" />
-                  <p className="font-black text-xs uppercase text-slate-900">
+                  <p className="font-semibold text-xs text-slate-900">
                     Pilih File Excel Laporan Kegiatan
                   </p>
-                  <p className="text-[11px] font-mono text-slate-600 mt-1">
+                  <p className="text-[11px] text-slate-500 mt-1">
                     Format didukung: .xlsx, .xls, .csv
                   </p>
 
@@ -191,22 +196,22 @@ export const ExcelUploadModal: React.FC<ExcelUploadModalProps> = ({
                 </div>
 
                 <div className="text-center">
-                  <span className="text-[10px] font-mono font-bold text-slate-500 uppercase block mb-2">
+                  <span className="text-xs text-slate-400 block mb-2">
                     Atau gunakan opsi instan ini:
                   </span>
                   <button
                     type="button"
                     onClick={loadSampleData}
                     disabled={isUploading}
-                    className="w-full bg-[#FACC15] text-black font-black text-xs py-2.5 px-4 border-2 border-black neo-shadow hover:bg-yellow-300 cursor-pointer disabled:opacity-50"
+                    className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs py-2.5 px-4 rounded-xl cursor-pointer transition-all shadow-xs disabled:opacity-50"
                   >
                     {isUploading ? 'Mengimport Data...' : '⚡ Upload Sample Data Excel Senayan (Simulasi)'}
                   </button>
                 </div>
 
-                <div className="bg-slate-100 p-3 border border-black font-mono text-[11px] text-slate-700 space-y-1">
-                  <strong>Kolom yang dikenali Excel:</strong>
-                  <p className="text-[10px]">Nama Kegiatan, Kategori Giat, Jenis Giat, Tema Giat, Asal Instansi, Segmentasi Peserta, Jumlah Peserta, Tahun, Tanggal.</p>
+                <div className="bg-slate-50 p-3.5 border border-slate-200 rounded-xl text-xs text-slate-600 space-y-1">
+                  <strong className="text-slate-800">Kolom yang dikenali Excel:</strong>
+                  <p className="text-[11px]">Nama Kegiatan, Kategori Giat, Jenis Giat, Tema Giat, Asal Instansi, Segmentasi Peserta, Jumlah Peserta, Tahun, Tanggal.</p>
                 </div>
               </>
             )}

@@ -13,10 +13,16 @@ export interface ActivityItem {
   kontak: string;
   jumlahPeserta: number;
   lokasi: string;
+  kabupaten?: string;
+  kecamatan?: string;
+  desa?: string;
   tanggal: string;
   status: 'Terlaksana' | 'Sedang Berjalan' | 'Terjadwal';
-  source: 'Google Form' | 'Excel Upload' | 'Manual';
+  source: 'Google Form' | 'Excel Upload' | 'Manual' | 'Google Sheet Auto-Sync';
   catatan?: string;
+  fotoDokumentasi?: string[];
+  notulensi?: string;
+  notulensiFile?: { name: string; url: string; size?: string };
 }
 
 export interface EbyConnectProgram {
@@ -27,10 +33,26 @@ export interface EbyConnectProgram {
   penerima: string;
   jumlahPenerima: number;
   wilayah: string;
+  kabupaten?: string;
+  kecamatan?: string;
   status: 'Penyaluran Selesai' | 'Proses Penyaluran' | 'Verifikasi Data';
   instansiMitra: string;
   tanggal: string;
   kontak: string;
+}
+
+export interface AttendanceRecord {
+  id: string;
+  activityId: string;
+  namaPeserta: string;
+  nik?: string;
+  kontak?: string;
+  instansi: string;
+  jabatan?: string;
+  waktuHadir: string;
+  fotoSelfie?: string;
+  statusKehadiran?: 'Hadir' | 'Izin' | 'Sakit';
+  catatan?: string;
 }
 
 export interface FilterState {
@@ -41,6 +63,7 @@ export interface FilterState {
   segmentasiPeserta: string;
   instansi: string;
   searchQuery: string;
+  kabupaten?: string;
 }
 
 export interface SyncLog {
@@ -52,7 +75,7 @@ export interface SyncLog {
   description: string;
 }
 
-export type UserRole = 'admin' | 'pimpinan';
+export type UserRole = 'public' | 'pimpinan' | 'admin';
 
 export interface ExecutiveSummaryStats {
   totalGiat: number;
@@ -65,4 +88,10 @@ export interface ExecutiveSummaryStats {
   giatEBY: number;
   percentMPR: number;
   percentDPR: number;
+}
+
+export interface GoogleSheetConfig {
+  senayanSheetUrl: string;
+  ebySheetUrl: string;
+  lastSyncedAt?: string;
 }

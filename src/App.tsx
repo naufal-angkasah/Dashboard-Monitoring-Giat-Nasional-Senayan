@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Header } from './components/Header';
 import { ExecutiveSummaryCards } from './components/ExecutiveSummaryCards';
@@ -11,6 +11,10 @@ import { GoogleFormModal } from './components/GoogleFormModal';
 import { ExcelUploadModal } from './components/ExcelUploadModal';
 import { SyncLogModal } from './components/SyncLogModal';
 import { LoginModal } from './components/LoginModal';
+import { AbsenGeneratorModal } from './components/AbsenGeneratorModal';
+import { PublicAbsenView } from './components/PublicAbsenView';
+import { GoogleSheetConfigModal } from './components/GoogleSheetConfigModal';
+import { DeploymentGuideModal } from './components/DeploymentGuideModal';
 
 import { 
   ActivityItem, 
@@ -18,24 +22,62 @@ import {
   FilterState, 
   SyncLog, 
   UserRole, 
-  ExecutiveSummaryStats 
+  ExecutiveSummaryStats,
+  AttendanceRecord,
+  GoogleSheetConfig
 } from './types';
 
 import { 
   INITIAL_ACTIVITIES, 
   INITIAL_EBY_PROGRAMS, 
-  INITIAL_SYNC_LOGS 
+  INITIAL_SYNC_LOGS,
+  INITIAL_ATTENDANCE_RECORDS 
 } from './data/mockData';
+
+import { db, collection, onSnapshot, setDoc, doc, addDoc } from './lib/firebase';
 
 export default function App() {
   // Primary Datasets State
   const [activities, setActivities] = useState<ActivityItem[]>(INITIAL_ACTIVITIES);
   const [ebyPrograms, setEbyPrograms] = useState<EbyConnectProgram[]>(INITIAL_EBY_PROGRAMS);
   const [syncLogs, setSyncLogs] = useState<SyncLog[]>(INITIAL_SYNC_LOGS);
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(INITIAL_ATTENDANCE_RECORDS);
 
   // Active Mode & Role
   const [activeCategoryTab, setActiveCategoryTab] = useState<'ALL' | 'MPR' | 'DPR' | 'EBY Connect'>('ALL');
-  const [userRole, setUserRole] = useState<UserRole>('pimpinan');
+  const [userRole, setUserRole] = useState<UserRole>(() => {
+    const saved = localStorage.getItem('userRole');
+    return (saved as UserRole) || 'admin';
+  });
+  const [userName, setUserName] = useState<string>(() => {
+    const saved = localStorage.getItem('userName');
+    return saved || 'Operator Tim Teknis';
+  });
+
+  const handleLoginSuccess = (role: UserRole, name: string) => {
+    setUserRole(role);
+    setUserName(name);
+    localStorage.setItem('userRole', role);
+    localStorage.setItem('userName', name);
+  };
+
+  // URL Parameter Check for Public Absen Mode (e.g. ?absen=G-2026-001)
+  const [publicAbsenActivityId, setPublicAbsenActivityId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const absenId = urlParams.get('absen');
+    if (absenId) {
+      setPublicAbsenActivityId(absenId);
+    }
+  }, []);
+
+  // Google Sheet Configuration
+  const [sheetConfig, setSheetConfig] = useState<GoogleSheetConfig>({
+    senayanSheetUrl: 'https://docs.google.com/spreadsheets/d/19pm_prz5Pu5F5uxXXo4pk0i_915SGqKO/edit',
+    ebySheetUrl: 'https://docs.google.com/spreadsheets/d/1ymkvImybklzu36t08M60LiR3FlLx9YSR/edit',
+    lastSyncedAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+  });
 
   // Filter State
   const [filter, setFilter] = useState<FilterState>({
@@ -46,6 +88,7 @@ export default function App() {
     segmentasiPeserta: 'ALL',
     instansi: 'ALL',
     searchQuery: '',
+    kabupaten: 'ALL',
   });
 
   // Syncing & Timestamps State
@@ -60,6 +103,34 @@ export default function App() {
   const [isExcelModalOpen, setIsExcelModalOpen] = useState<boolean>(false);
   const [isSyncLogModalOpen, setIsSyncLogModalOpen] = useState<boolean>(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
+  const [isAbsenGeneratorOpen, setIsAbsenGeneratorOpen] = useState<boolean>(false);
+  const [selectedActivityForAbsen, setSelectedActivityForAbsen] = useState<ActivityItem | null>(null);
+  const [isSheetConfigOpen, setIsSheetConfigOpen] = useState<boolean>(false);
+  const [isDeploymentGuideOpen, setIsDeploymentGuideOpen] = useState<boolean>(false);
+
+  // Firestore Real-Time Listener
+  useEffect(() => {
+    let unsubscribe: () => void;
+    try {
+      const actRef = collection(db, 'activities');
+      unsubscribe = onSnapshot(actRef, (snapshot) => {
+        if (!snapshot.empty) {
+          const loaded: ActivityItem[] = [];
+          snapshot.forEach((docSnap) => {
+            loaded.push({ id: docSnap.id, ...docSnap.data() } as ActivityItem);
+          });
+          setActivities(loaded);
+        }
+      }, (err) => {
+        console.warn('Firestore offline or snapshot error, fallback to local state:', err);
+      });
+    } catch (e) {
+      console.warn('Firestore init error:', e);
+    }
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
 
   // Sync Tab Switcher with Filter State
   const handleTabChange = (tab: 'ALL' | 'MPR' | 'DPR' | 'EBY Connect') => {
@@ -74,27 +145,6 @@ export default function App() {
       setFilter(prev => ({ ...prev, kategoriGiat: 'ALL' }));
     }
   };
-
-  // Dynamic Available Filter Options
-  const availableYears = useMemo(() => {
-    return Array.from(new Set(activities.map(a => a.tahun))).sort().reverse();
-  }, [activities]);
-
-  const availableJenisGiat = useMemo(() => {
-    return Array.from(new Set(activities.map(a => a.jenisGiat))).sort();
-  }, [activities]);
-
-  const availableTemaGiat = useMemo(() => {
-    return Array.from(new Set(activities.map(a => a.temaGiat))).sort();
-  }, [activities]);
-
-  const availableSegmentasi = useMemo(() => {
-    return Array.from(new Set(activities.map(a => a.segmentasiPeserta))).sort();
-  }, [activities]);
-
-  const availableInstansi = useMemo(() => {
-    return Array.from(new Set(activities.map(a => a.asalInstansi))).sort();
-  }, [activities]);
 
   // Filtered Activities
   const filteredActivities = useMemo(() => {
@@ -114,12 +164,12 @@ export default function App() {
 
       // Search Query
       if (filter.searchQuery.trim() !== '') {
-        const query = filter.searchQuery.toLowerCase();
-        const matchTitle = activity.namaGiat.toLowerCase().includes(query);
-        const matchInst = activity.asalInstansi.toLowerCase().includes(query);
-        const matchTema = activity.temaGiat.toLowerCase().includes(query);
-        const matchPeserta = activity.namaPeserta.toLowerCase().includes(query);
-        const matchJenis = activity.jenisGiat.toLowerCase().includes(query);
+        const queryStr = filter.searchQuery.toLowerCase();
+        const matchTitle = activity.namaGiat.toLowerCase().includes(queryStr);
+        const matchInst = activity.asalInstansi.toLowerCase().includes(queryStr);
+        const matchTema = activity.temaGiat.toLowerCase().includes(queryStr);
+        const matchPeserta = activity.namaPeserta.toLowerCase().includes(queryStr);
+        const matchJenis = activity.jenisGiat.toLowerCase().includes(queryStr);
 
         if (!matchTitle && !matchInst && !matchTema && !matchPeserta && !matchJenis) {
           return false;
@@ -160,251 +210,287 @@ export default function App() {
     };
   }, [filteredActivities]);
 
-  // Count active filters
-  const activeCount = useMemo(() => {
-    let count = 0;
-    if (filter.tahun !== 'ALL') count++;
-    if (filter.kategoriGiat !== 'ALL') count++;
-    if (filter.jenisGiat !== 'ALL') count++;
-    if (filter.temaGiat !== 'ALL') count++;
-    if (filter.segmentasiPeserta !== 'ALL') count++;
-    if (filter.instansi !== 'ALL') count++;
-    if (filter.searchQuery !== '') count++;
-    return count;
-  }, [filter]);
+  // Handlers for Add, Update & Sync
+  const handleAddNewActivity = async (newAct: ActivityItem) => {
+    setActivities(prev => [newAct, ...prev]);
 
-  // Reset Filter Handler
-  const handleResetFilter = () => {
-    setFilter({
-      tahun: 'ALL',
-      kategoriGiat: activeCategoryTab === 'ALL' ? 'ALL' : activeCategoryTab,
-      jenisGiat: 'ALL',
-      temaGiat: 'ALL',
-      segmentasiPeserta: 'ALL',
-      instansi: 'ALL',
-      searchQuery: '',
-    });
-  };
+    // Save to Firestore
+    try {
+      await setDoc(doc(db, 'activities', newAct.id), newAct);
+    } catch (e) {
+      console.warn('Firestore write error:', e);
+    }
 
-  // Auto-Sync Trigger Handler
-  const handleTriggerAutoSync = () => {
-    setIsSyncing(true);
-    setTimeout(() => {
-      const nowTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-      setLastSyncTime(nowTime);
-      setIsSyncing(false);
-
-      const newLog: SyncLog = {
-        id: `LOG-${Date.now()}`,
-        timestamp: `${new Date().toISOString().slice(0, 10)} ${nowTime}`,
-        source: 'Google Sheet Auto-Sync',
-        status: 'Success',
-        recordsCount: activities.length,
-        description: 'Auto-sync database dengan Cloud Spreadsheet Master Senayan'
-      };
-
-      setSyncLogs(prev => [newLog, ...prev]);
-    }, 1200);
-  };
-
-  // Submit New Activity From Google Form Modal
-  const handleSubmitNewActivity = (newActivity: ActivityItem) => {
-    setActivities(prev => [newActivity, ...prev]);
-
-    // Add Sync Log
-    const newLog: SyncLog = {
+    const log: SyncLog = {
       id: `LOG-${Date.now()}`,
-      timestamp: `${new Date().toISOString().slice(0, 10)} ${new Date().toLocaleTimeString('id-ID')}`,
+      timestamp: new Date().toLocaleString('id-ID'),
       source: 'Google Form',
       status: 'Success',
       recordsCount: 1,
-      description: `Pendaftaran Baru: ${newActivity.namaGiat}`
+      description: `Input kegiatan baru: "${newAct.namaGiat}"`
     };
-
-    setSyncLogs(prev => [newLog, ...prev]);
-    setLastSyncTime(new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }));
+    setSyncLogs(prev => [log, ...prev]);
   };
 
-  // Import Excel Activities Handler
-  const handleImportExcelActivities = (imported: ActivityItem[]) => {
-    setActivities(prev => [...imported, ...prev]);
+  const handleUpdateActivity = async (updated: ActivityItem) => {
+    setActivities(prev => prev.map(a => a.id === updated.id ? updated : a));
+    if (selectedActivity && selectedActivity.id === updated.id) {
+      setSelectedActivity(updated);
+    }
+    try {
+      await setDoc(doc(db, 'activities', updated.id), updated);
+    } catch (e) {
+      console.warn('Firestore update error:', e);
+    }
+  };
 
-    const newLog: SyncLog = {
+  const handleExcelImportSuccess = async (importedActivities: ActivityItem[]) => {
+    setActivities(prev => [...importedActivities, ...prev]);
+
+    // Save imported activities to Firestore
+    for (const act of importedActivities) {
+      try {
+        await setDoc(doc(db, 'activities', act.id), act);
+      } catch (e) {
+        console.warn('Firestore write error:', e);
+      }
+    }
+
+    const log: SyncLog = {
       id: `LOG-${Date.now()}`,
-      timestamp: `${new Date().toISOString().slice(0, 10)} ${new Date().toLocaleTimeString('id-ID')}`,
+      timestamp: new Date().toLocaleString('id-ID'),
       source: 'Excel Upload',
       status: 'Success',
-      recordsCount: imported.length,
-      description: `Import ${imported.length} data kegiatan via file Excel/CSV`
+      recordsCount: importedActivities.length,
+      description: `Import Excel berhasil menyorot ${importedActivities.length} data kegiatan.`
     };
-
-    setSyncLogs(prev => [newLog, ...prev]);
-    setLastSyncTime(new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }));
+    setSyncLogs(prev => [log, ...prev]);
   };
 
+  const handleTriggerAutoSync = async () => {
+    setIsSyncing(true);
+    await new Promise(r => setTimeout(r, 1200));
+
+    const timestamp = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    setLastSyncTime(timestamp);
+    setIsSyncing(false);
+
+    const log: SyncLog = {
+      id: `LOG-${Date.now()}`,
+      timestamp: new Date().toLocaleString('id-ID'),
+      source: 'Google Sheet Auto-Sync',
+      status: 'Success',
+      recordsCount: activities.length,
+      description: 'Auto-sync dengan Cloud Spreadsheet & Firestore berhasil dilaksanakan.'
+    };
+    setSyncLogs(prev => [log, ...prev]);
+  };
+
+  const handleSubmitAttendance = async (record: Omit<AttendanceRecord, 'id'>) => {
+    const fullRecord: AttendanceRecord = {
+      ...record,
+      id: `ATT-${Date.now()}`,
+    };
+    setAttendanceRecords(prev => [fullRecord, ...prev]);
+
+    // Save attendance to Firestore
+    try {
+      await addDoc(collection(db, 'attendance'), fullRecord);
+    } catch (e) {
+      console.warn('Firestore attendance save error:', e);
+    }
+
+    // Increment activity participant count in state
+    setActivities(prev => prev.map(a => {
+      if (a.id === record.activityId) {
+        return { ...a, jumlahPeserta: a.jumlahPeserta + 1 };
+      }
+      return a;
+    }));
+  };
+
+  // Render Public Absen Page if URL query param exists
+  if (publicAbsenActivityId) {
+    const matchedActivity = activities.find(a => a.id === publicAbsenActivityId) || activities[0];
+    return (
+      <PublicAbsenView
+        activity={matchedActivity}
+        onBackToDashboard={() => {
+          // Remove query string from URL without full reload
+          window.history.pushState({}, document.title, window.location.pathname);
+          setPublicAbsenActivityId(null);
+        }}
+        onSubmitAttendance={handleSubmitAttendance}
+      />
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-800 pb-12 font-sans selection:bg-amber-200 selection:text-slate-900 border-[3px] sm:border-[4px] border-slate-900">
-      
-      {/* HEADER COMPONENT */}
+    <div className="min-h-screen bg-slate-100 text-slate-900 font-sans pb-16 antialiased">
+      {/* Header Bar */}
       <Header
         activeCategoryTab={activeCategoryTab}
         setActiveCategoryTab={handleTabChange}
         userRole={userRole}
+        userName={userName}
+        searchQuery={filter.searchQuery}
+        onSearchQueryChange={(q) => setFilter(prev => ({...prev, searchQuery: q}))}
         onOpenLoginModal={() => setIsLoginModalOpen(true)}
+        onLogout={() => {
+          setUserRole('public');
+          setUserName('');
+          localStorage.removeItem('userRole');
+          localStorage.removeItem('userName');
+        }}
         onOpenGoogleFormModal={() => setIsGoogleFormModalOpen(true)}
         onOpenExcelModal={() => setIsExcelModalOpen(true)}
         onOpenSyncLogModal={() => setIsSyncLogModalOpen(true)}
+        onOpenAbsenGeneratorModal={() => setIsAbsenGeneratorOpen(true)}
+        onOpenSheetConfigModal={() => setIsSheetConfigOpen(true)}
+        onOpenDeploymentGuideModal={() => setIsDeploymentGuideOpen(true)}
         onTriggerAutoSync={handleTriggerAutoSync}
         isSyncing={isSyncing}
         lastSyncTime={lastSyncTime}
       />
 
-      {/* MAIN CONTAINER */}
+      {/* Main Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6">
         
-        {/* ANIMATED MODE TRANSITION WITH AnimatePresence */}
-        <AnimatePresence mode="wait">
-          
-          {/* EBY CONNECT VIEW (PROGRAM NON-DAPIL SIMPLIFIED VIEW) */}
-          {activeCategoryTab === 'EBY Connect' ? (
-            <motion.div
-              key="eby-connect-view"
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.98 }}
-              transition={{ duration: 0.25 }}
-            >
-              {/* Executive Summary Cards in Simplified EBY Mode */}
-              <ExecutiveSummaryCards
-                stats={stats}
-                activeCategoryTab={activeCategoryTab}
-                totalEbyPrograms={ebyPrograms.length}
-                totalEbyPenerima={ebyPrograms.reduce((a, b) => a + b.jumlahPenerima, 0)}
-              />
+        {/* Executive Summary Cards */}
+        <ExecutiveSummaryCards
+          stats={stats}
+          activeCategoryTab={activeCategoryTab}
+          totalEbyPrograms={ebyPrograms.length}
+          totalEbyPenerima={ebyPrograms.reduce((sum, p) => sum + p.jumlahPenerima, 0)}
+        />
 
-              {/* Dedicated EBY Connect View */}
-              <EbyConnectView
-                programs={ebyPrograms}
-                onOpenDetailProgram={(p) => {
-                  // Map EBY Program to ActivityItem format for detail view
-                  setSelectedActivity({
-                    id: p.id,
-                    tahun: p.tahun,
-                    kategoriGiat: 'EBY Connect',
-                    jenisGiat: p.jenisProgram,
-                    temaGiat: 'Program Non-Dapil',
-                    namaGiat: p.namaProgram,
-                    namaPeserta: p.penerima,
-                    asalInstansi: p.instansiMitra,
-                    segmentasiPeserta: 'Penerima Beasiswa & Bantuan',
-                    kontak: p.kontak,
-                    jumlahPeserta: p.jumlahPenerima,
-                    lokasi: p.wilayah,
-                    tanggal: p.tanggal,
-                    status: 'Terlaksana',
-                    source: 'Google Form',
-                    catatan: `Status Penyaluran: ${p.status}`
-                  });
-                }}
-              />
-            </motion.div>
-          ) : (
-            
-            /* STANDARD VIEW (MPR & DPR EXECUTIVE SUMMARY + ANALYTICS + FILTER + TABLE) */
-            <motion.div
-              key="standard-mpr-dpr-view"
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.98 }}
-              transition={{ duration: 0.25 }}
-            >
-              {/* EXECUTIVE SUMMARY KPI CARDS */}
-              <ExecutiveSummaryCards
-                stats={stats}
-                activeCategoryTab={activeCategoryTab}
-              />
+        {/* View Switcher: EBY Connect View vs Giat Senayan View */}
+        {activeCategoryTab === 'EBY Connect' ? (
+          <EbyConnectView
+            programs={ebyPrograms}
+            onUpdatePrograms={setEbyPrograms}
+            globalSearchQuery={filter.searchQuery}
+            onGlobalSearchChange={(q) => setFilter(prev => ({...prev, searchQuery: q}))}
+            userRole={userRole}
+          />
+        ) : (
+          <>
+            {/* Filter Section */}
+            <FilterSection
+              filter={filter}
+              setFilter={setFilter}
+              activities={activities}
+            />
 
-              {/* FILTER SECTION */}
-              <FilterSection
-                filter={filter}
-                setFilter={setFilter}
-                availableYears={availableYears}
-                availableJenisGiat={availableJenisGiat}
-                availableTemaGiat={availableTemaGiat}
-                availableSegmentasi={availableSegmentasi}
-                availableInstansi={availableInstansi}
-                onResetFilter={handleResetFilter}
-                activeCount={activeCount}
-              />
+            {/* Analytics & Charts */}
+            <ChartsSection
+              filteredActivities={filteredActivities}
+              activities={filteredActivities}
+              activeCategoryTab={activeCategoryTab}
+            />
 
-              {/* CHARTS & RECHARTS SECTION */}
-              <ChartsSection filteredActivities={filteredActivities} />
-
-              {/* DATA TABLE & EXPORT REPORT */}
-              <DataTable
-                activities={filteredActivities}
-                onSelectActivity={(act) => setSelectedActivity(act)}
-                userRole={userRole}
-              />
-            </motion.div>
-          )}
-
-        </AnimatePresence>
+            {/* Data Table */}
+            <DataTable
+              activities={filteredActivities}
+              onSelectActivity={setSelectedActivity}
+              onGenerateAbsenForActivity={(act) => {
+                setSelectedActivityForAbsen(act);
+                setIsAbsenGeneratorOpen(true);
+              }}
+              userRole={userRole}
+            />
+          </>
+        )}
 
       </main>
 
-      {/* FOOTER */}
-      <footer className="mt-12 py-6 bg-[#18181B] text-white border-t-4 border-black font-mono text-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
+      {/* Footer */}
+      <footer className="mt-12 bg-slate-900 text-slate-400 py-6 border-t-2 border-slate-950 font-mono text-xs text-center">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div>
-            <p className="font-bold text-yellow-300">
-              DASHBOARD 2: MONITORING GIAT NASIONAL (SENAYAN)
-            </p>
-            <p className="text-[11px] text-zinc-400 mt-0.5">
-              Sistem Pelaporan MPR RI, DPR RI, & EBY Connect • Terhubung Cloud Spreadsheet & Google Form
-            </p>
+            <strong>Dashboard Monitoring Giat Senayan & EBY Connect</strong> • Giat MPR, DPR & EBY Connect Skala Nasional © 2026
           </div>
-
-          <div className="flex items-center gap-3 text-[11px] text-zinc-400">
-            <span className="bg-zinc-800 text-yellow-300 px-2 py-1 border border-zinc-700">
-              Neo-Brutalism UI
-            </span>
-            <span className="bg-zinc-800 text-emerald-400 px-2 py-1 border border-zinc-700">
-              Recharts & Motion
-            </span>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsDeploymentGuideOpen(true)}
+              className="text-amber-300 hover:underline font-bold cursor-pointer"
+            >
+              Panduan Deployment
+            </button>
+            <span>•</span>
+            <button
+              onClick={() => setIsSheetConfigOpen(true)}
+              className="text-slate-300 hover:underline cursor-pointer"
+            >
+              Spreadsheet Config
+            </button>
           </div>
         </div>
       </footer>
 
-      {/* MODAL DIALOGS */}
+      {/* MODALS */}
+
+      {/* Detail & Notulensi Modal */}
       <DetailModal
         activity={selectedActivity}
         onClose={() => setSelectedActivity(null)}
+        onUpdateActivity={handleUpdateActivity}
       />
 
+      {/* Absen & QR Link Generator Modal */}
+      <AbsenGeneratorModal
+        isOpen={isAbsenGeneratorOpen}
+        onClose={() => setIsAbsenGeneratorOpen(false)}
+        activities={activities}
+        selectedActivityForAbsen={selectedActivityForAbsen}
+        onSelectActivityForAbsen={setSelectedActivityForAbsen}
+        onOpenPublicAbsen={(id) => setPublicAbsenActivityId(id)}
+      />
+
+      {/* Google Spreadsheet Config Modal */}
+      <GoogleSheetConfigModal
+        isOpen={isSheetConfigOpen}
+        onClose={() => setIsSheetConfigOpen(false)}
+        config={sheetConfig}
+        onSaveConfig={setSheetConfig}
+        onTriggerSync={handleTriggerAutoSync}
+        isSyncing={isSyncing}
+        lastSyncedAt={lastSyncTime}
+      />
+
+      {/* Deployment Guide Modal */}
+      <DeploymentGuideModal
+        isOpen={isDeploymentGuideOpen}
+        onClose={() => setIsDeploymentGuideOpen(false)}
+      />
+
+      {/* Input Form Simulation Modal */}
       <GoogleFormModal
         isOpen={isGoogleFormModalOpen}
         onClose={() => setIsGoogleFormModalOpen(false)}
-        onSubmitNewActivity={handleSubmitNewActivity}
+        onAddActivity={handleAddNewActivity}
       />
 
+      {/* Excel Upload Modal */}
       <ExcelUploadModal
         isOpen={isExcelModalOpen}
         onClose={() => setIsExcelModalOpen(false)}
-        onImportActivities={handleImportExcelActivities}
+        onImportSuccess={handleExcelImportSuccess}
       />
 
+      {/* Sync Log Modal */}
       <SyncLogModal
         isOpen={isSyncLogModalOpen}
         onClose={() => setIsSyncLogModalOpen(false)}
-        syncLogs={syncLogs}
+        logs={syncLogs}
       />
 
+      {/* Login & Role Switcher Modal */}
       <LoginModal
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}
         currentRole={userRole}
-        onSwitchRole={(role) => setUserRole(role)}
+        onLoginSuccess={handleLoginSuccess}
       />
 
     </div>
