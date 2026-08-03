@@ -24,8 +24,8 @@ import {
 import { UserRole } from '../types';
 
 interface HeaderProps {
-  activeCategoryTab: 'ALL' | 'MPR' | 'DPR' | 'EBY Connect';
-  setActiveCategoryTab: (tab: 'ALL' | 'MPR' | 'DPR' | 'EBY Connect') => void;
+  activeCategoryTab: 'ALL' | 'MPR' | 'DPR' | 'EBY Connect' | 'daftar_hadir';
+  setActiveCategoryTab: (tab: 'ALL' | 'MPR' | 'DPR' | 'EBY Connect' | 'daftar_hadir') => void;
   userRole: UserRole;
   userName?: string;
   searchQuery: string;

@@ -7,6 +7,7 @@ import { FilterSection } from './components/FilterSection';
 import { ChartsSection } from './components/ChartsSection';
 import { DataTable } from './components/DataTable';
 import { EbyConnectView } from './components/EbyConnectView';
+import { DaftarHadirView } from './components/DaftarHadirView';
 import { DetailModal } from './components/DetailModal';
 import { GoogleFormModal } from './components/GoogleFormModal';
 import { ExcelUploadModal } from './components/ExcelUploadModal';
@@ -49,7 +50,7 @@ export default function App() {
   const THIRTY_MIN_MS = 30 * 60 * 1000;
 
   // Active Mode & Role
-  const [activeCategoryTab, setActiveCategoryTab] = useState<'ALL' | 'MPR' | 'DPR' | 'EBY Connect'>('ALL');
+  const [activeCategoryTab, setActiveCategoryTab] = useState<'ALL' | 'MPR' | 'DPR' | 'EBY Connect' | 'daftar_hadir'>('ALL');
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
     const isLogged = sessionStorage.getItem('isLoggedIn_senayan') === 'true';
     const lastActive = sessionStorage.getItem('senayan_auth_time');
@@ -422,6 +423,7 @@ export default function App() {
           userName={userName}
           stats={stats}
           totalEbyPrograms={ebyPrograms.length}
+          totalAttendanceRecords={attendanceRecords.length}
           isOpenMobile={isSidebarMobileOpen}
           setIsOpenMobile={setIsSidebarMobileOpen}
         />
@@ -430,7 +432,7 @@ export default function App() {
         <main className="flex-1 px-4 sm:px-6 py-3.5 sm:py-4 min-w-0">
           
           {/* Filter Section */}
-          {activeCategoryTab !== 'EBY Connect' && (
+          {activeCategoryTab !== 'EBY Connect' && activeCategoryTab !== 'daftar_hadir' && (
             <FilterSection
               filter={filter}
               setFilter={setFilter}
@@ -439,15 +441,24 @@ export default function App() {
           )}
 
           {/* Executive Summary Cards */}
-          <ExecutiveSummaryCards
-            stats={stats}
-            activeCategoryTab={activeCategoryTab}
-            totalEbyPrograms={ebyPrograms.length}
-            totalEbyPenerima={ebyPrograms.reduce((sum, p) => sum + p.jumlahPenerima, 0)}
-          />
+          {activeCategoryTab !== 'daftar_hadir' && (
+            <ExecutiveSummaryCards
+              stats={stats}
+              activeCategoryTab={activeCategoryTab}
+              totalEbyPrograms={ebyPrograms.length}
+              totalEbyPenerima={ebyPrograms.reduce((sum, p) => sum + p.jumlahPenerima, 0)}
+            />
+          )}
 
-          {/* View Switcher: EBY Connect View vs Giat Senayan View */}
-          {activeCategoryTab === 'EBY Connect' ? (
+          {/* View Switcher: EBY Connect View vs Daftar Hadir View vs Giat Senayan View */}
+          {activeCategoryTab === 'daftar_hadir' ? (
+            <DaftarHadirView
+              attendanceRecords={attendanceRecords}
+              activities={activities}
+              userRole={userRole}
+              onOpenAbsenGenerator={() => setIsAbsenGeneratorOpen(true)}
+            />
+          ) : activeCategoryTab === 'EBY Connect' ? (
             <EbyConnectView
               programs={ebyPrograms}
               onUpdatePrograms={setEbyPrograms}

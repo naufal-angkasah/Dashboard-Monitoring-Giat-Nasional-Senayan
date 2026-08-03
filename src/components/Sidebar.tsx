@@ -12,17 +12,19 @@ import {
   ChevronRight,
   User,
   SlidersHorizontal,
-  FolderKanban
+  FolderKanban,
+  UserCheck
 } from 'lucide-react';
 import { UserRole, ExecutiveSummaryStats } from '../types';
 
 interface SidebarProps {
-  activeCategoryTab: 'ALL' | 'MPR' | 'DPR' | 'EBY Connect';
-  setActiveCategoryTab: (tab: 'ALL' | 'MPR' | 'DPR' | 'EBY Connect') => void;
+  activeCategoryTab: 'ALL' | 'MPR' | 'DPR' | 'EBY Connect' | 'daftar_hadir';
+  setActiveCategoryTab: (tab: 'ALL' | 'MPR' | 'DPR' | 'EBY Connect' | 'daftar_hadir') => void;
   userRole: UserRole;
   userName?: string;
   stats?: ExecutiveSummaryStats;
   totalEbyPrograms?: number;
+  totalAttendanceRecords?: number;
   isOpenMobile: boolean;
   setIsOpenMobile: (open: boolean) => void;
 }
@@ -34,13 +36,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
   userName,
   stats,
   totalEbyPrograms = 7,
+  totalAttendanceRecords = 0,
   isOpenMobile,
   setIsOpenMobile,
 }) => {
   const menuItems = [
     {
       id: 'ALL' as const,
-      title: 'Semua Giat Senayan',
+      title: 'Overview',
       subtitle: 'MPR, DPR & EBY Connect',
       icon: Building2,
       count: stats?.totalGiat || 0,
@@ -81,6 +84,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
       activeBg: 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20',
       activeText: 'text-white',
       badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-200',
+    },
+    {
+      id: 'daftar_hadir' as const,
+      title: 'Daftar Hadir',
+      subtitle: 'Presensi & Absensi Digital',
+      icon: UserCheck,
+      count: totalAttendanceRecords,
+      dotColor: 'bg-purple-400',
+      activeBg: 'bg-purple-600 text-white shadow-md shadow-purple-500/20',
+      activeText: 'text-white',
+      badgeClass: 'bg-purple-100 text-purple-900 border-purple-200',
     },
   ];
 
