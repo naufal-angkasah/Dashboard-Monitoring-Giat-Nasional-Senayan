@@ -53,6 +53,12 @@ export interface AttendanceRecord {
   fotoSelfie?: string;
   statusKehadiran?: 'Hadir' | 'Izin' | 'Sakit';
   catatan?: string;
+  tahun?: string;
+  kategoriGiat?: KategoriGiat;
+  jenisGiat?: string;
+  temaGiat?: string;
+  namaGiat?: string;
+  segmentasiPeserta?: string;
 }
 
 export interface FilterState {
