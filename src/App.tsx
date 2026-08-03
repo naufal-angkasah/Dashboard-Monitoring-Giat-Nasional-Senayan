@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Header } from './components/Header';
+import { Sidebar } from './components/Sidebar';
 import { ExecutiveSummaryCards } from './components/ExecutiveSummaryCards';
 import { FilterSection } from './components/FilterSection';
 import { ChartsSection } from './components/ChartsSection';
@@ -113,6 +114,7 @@ export default function App() {
   const [selectedActivityForAbsen, setSelectedActivityForAbsen] = useState<ActivityItem | null>(null);
   const [isSheetConfigOpen, setIsSheetConfigOpen] = useState<boolean>(false);
   const [isDeploymentGuideOpen, setIsDeploymentGuideOpen] = useState<boolean>(false);
+  const [isSidebarMobileOpen, setIsSidebarMobileOpen] = useState<boolean>(false);
 
   // Firestore Real-Time Listener
   useEffect(() => {
@@ -363,61 +365,76 @@ export default function App() {
         onTriggerAutoSync={handleTriggerAutoSync}
         isSyncing={isSyncing}
         lastSyncTime={lastSyncTime}
+        onToggleMobileSidebar={() => setIsSidebarMobileOpen(true)}
       />
 
-      {/* Main Container */}
-      <main className="max-w-7xl w-full mx-auto px-4 sm:px-6 py-3.5 sm:py-4 flex-1">
-        
-        {/* Filter Section */}
-        {activeCategoryTab !== 'EBY Connect' && (
-          <FilterSection
-            filter={filter}
-            setFilter={setFilter}
-            activities={activities}
-          />
-        )}
-
-        {/* Executive Summary Cards */}
-        <ExecutiveSummaryCards
-          stats={stats}
+      {/* Main Body Container with Left Sidebar & Right Content */}
+      <div className="flex-1 max-w-[1600px] w-full mx-auto flex flex-col md:flex-row gap-0">
+        {/* Left Sidebar Menu */}
+        <Sidebar
           activeCategoryTab={activeCategoryTab}
+          setActiveCategoryTab={handleTabChange}
+          userRole={userRole}
+          userName={userName}
+          stats={stats}
           totalEbyPrograms={ebyPrograms.length}
-          totalEbyPenerima={ebyPrograms.reduce((sum, p) => sum + p.jumlahPenerima, 0)}
+          isOpenMobile={isSidebarMobileOpen}
+          setIsOpenMobile={setIsSidebarMobileOpen}
         />
 
-        {/* View Switcher: EBY Connect View vs Giat Senayan View */}
-        {activeCategoryTab === 'EBY Connect' ? (
-          <EbyConnectView
-            programs={ebyPrograms}
-            onUpdatePrograms={setEbyPrograms}
-            globalSearchQuery={filter.searchQuery}
-            onGlobalSearchChange={(q) => setFilter(prev => ({...prev, searchQuery: q}))}
-            userRole={userRole}
-          />
-        ) : (
-          <>
-
-            {/* Analytics & Charts */}
-            <ChartsSection
-              filteredActivities={filteredActivities}
-              activities={filteredActivities}
-              activeCategoryTab={activeCategoryTab}
+        {/* Right Main Content Area */}
+        <main className="flex-1 px-4 sm:px-6 py-3.5 sm:py-4 min-w-0">
+          
+          {/* Filter Section */}
+          {activeCategoryTab !== 'EBY Connect' && (
+            <FilterSection
+              filter={filter}
+              setFilter={setFilter}
+              activities={activities}
             />
+          )}
 
-            {/* Data Table */}
-            <DataTable
-              activities={filteredActivities}
-              onSelectActivity={setSelectedActivity}
-              onGenerateAbsenForActivity={(act) => {
-                setSelectedActivityForAbsen(act);
-                setIsAbsenGeneratorOpen(true);
-              }}
+          {/* Executive Summary Cards */}
+          <ExecutiveSummaryCards
+            stats={stats}
+            activeCategoryTab={activeCategoryTab}
+            totalEbyPrograms={ebyPrograms.length}
+            totalEbyPenerima={ebyPrograms.reduce((sum, p) => sum + p.jumlahPenerima, 0)}
+          />
+
+          {/* View Switcher: EBY Connect View vs Giat Senayan View */}
+          {activeCategoryTab === 'EBY Connect' ? (
+            <EbyConnectView
+              programs={ebyPrograms}
+              onUpdatePrograms={setEbyPrograms}
+              globalSearchQuery={filter.searchQuery}
+              onGlobalSearchChange={(q) => setFilter(prev => ({...prev, searchQuery: q}))}
               userRole={userRole}
             />
-          </>
-        )}
+          ) : (
+            <>
+              {/* Analytics & Charts */}
+              <ChartsSection
+                filteredActivities={filteredActivities}
+                activities={filteredActivities}
+                activeCategoryTab={activeCategoryTab}
+              />
 
-      </main>
+              {/* Data Table */}
+              <DataTable
+                activities={filteredActivities}
+                onSelectActivity={setSelectedActivity}
+                onGenerateAbsenForActivity={(act) => {
+                  setSelectedActivityForAbsen(act);
+                  setIsAbsenGeneratorOpen(true);
+                }}
+                userRole={userRole}
+              />
+            </>
+          )}
+
+        </main>
+      </div>
 
       {/* Footer */}
       <footer className="mt-auto bg-slate-900 text-slate-400 py-5 border-t border-slate-800 text-xs font-sans">
