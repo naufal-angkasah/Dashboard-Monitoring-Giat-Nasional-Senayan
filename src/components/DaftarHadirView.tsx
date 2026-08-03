@@ -24,6 +24,7 @@ import {
   Calendar
 } from 'lucide-react';
 import { AttendanceRecord, ActivityItem, UserRole } from '../types';
+import { CustomTooltip } from './CustomTooltip';
 
 interface DaftarHadirViewProps {
   attendanceRecords: AttendanceRecord[];
@@ -355,9 +356,15 @@ export const DaftarHadirView: React.FC<DaftarHadirViewProps> = ({
 
                       {/* NAMA GIAT */}
                       <td className="px-4 py-3 max-w-xs">
-                        <p className="font-bold text-slate-900 leading-snug line-clamp-2" title={namaGiat}>
-                          {namaGiat}
-                        </p>
+                        <CustomTooltip
+                          content={namaGiat}
+                          category={kategori}
+                          badge={tema}
+                        >
+                          <p className="font-bold text-slate-900 leading-snug line-clamp-2 hover:text-indigo-600 transition-colors cursor-pointer">
+                            {namaGiat}
+                          </p>
+                        </CustomTooltip>
                       </td>
 
                       {/* NAMA PESERTA */}

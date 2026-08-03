@@ -16,6 +16,7 @@ import {
   QrCode
 } from 'lucide-react';
 import { ActivityItem } from '../types';
+import { CustomTooltip } from './CustomTooltip';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -240,15 +241,19 @@ export const DataTable: React.FC<DataTableProps> = ({
                     {startIndex + index + 1}
                   </td>
 
-                  <td className="p-3 font-bold text-slate-900 border-r border-slate-200 sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">
-                    <div>
-                      <span className="hover:underline cursor-pointer hover:text-blue-700" onClick={() => onSelectActivity(activity)}>
+                  <td className="p-3 font-bold text-slate-900 border-r border-slate-200 sticky left-0 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)] max-w-xs">
+                    <CustomTooltip
+                      content={activity.namaGiat}
+                      category={activity.kategoriGiat}
+                      badge={activity.temaGiat}
+                    >
+                      <span className="hover:underline cursor-pointer hover:text-blue-700 line-clamp-2" onClick={() => onSelectActivity(activity)}>
                         {activity.namaGiat}
                       </span>
-                      <span className="block text-[11px] font-mono font-normal text-slate-500 mt-0.5">
-                        {activity.lokasi} • {activity.tanggal}
-                      </span>
-                    </div>
+                    </CustomTooltip>
+                    <span className="block text-[11px] font-mono font-normal text-slate-500 mt-0.5">
+                      {activity.lokasi} • {activity.tanggal}
+                    </span>
                   </td>
 
                   <td className="p-3 font-mono font-bold text-center border-r border-slate-200 text-slate-800">
