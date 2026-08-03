@@ -45,17 +45,31 @@ export default function App() {
   const [syncLogs, setSyncLogs] = useState<SyncLog[]>(INITIAL_SYNC_LOGS);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(INITIAL_ATTENDANCE_RECORDS);
 
+  // 30-minute session expiry helper
+  const THIRTY_MIN_MS = 30 * 60 * 1000;
+
   // Active Mode & Role
   const [activeCategoryTab, setActiveCategoryTab] = useState<'ALL' | 'MPR' | 'DPR' | 'EBY Connect'>('ALL');
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
-    return localStorage.getItem('isLoggedIn_senayan') === 'true';
+    const isLogged = sessionStorage.getItem('isLoggedIn_senayan') === 'true';
+    const lastActive = sessionStorage.getItem('senayan_auth_time');
+    if (!isLogged || !lastActive) {
+      sessionStorage.clear();
+      return false;
+    }
+    if (Date.now() - Number(lastActive) > THIRTY_MIN_MS) {
+      sessionStorage.clear();
+      return false;
+    }
+    sessionStorage.setItem('senayan_auth_time', String(Date.now()));
+    return true;
   });
   const [userRole, setUserRole] = useState<UserRole>(() => {
-    const saved = localStorage.getItem('userRole');
+    const saved = sessionStorage.getItem('userRole');
     return (saved as UserRole) || 'pimpinan';
   });
   const [userName, setUserName] = useState<string>(() => {
-    const saved = localStorage.getItem('userName');
+    const saved = sessionStorage.getItem('userName');
     return saved || 'Dr. H. Anggota DPR';
   });
 
@@ -63,10 +77,47 @@ export default function App() {
     setUserRole(role);
     setUserName(name);
     setIsLoggedIn(true);
-    localStorage.setItem('userRole', role);
-    localStorage.setItem('userName', name);
-    localStorage.setItem('isLoggedIn_senayan', 'true');
+    sessionStorage.setItem('userRole', role);
+    sessionStorage.setItem('userName', name);
+    sessionStorage.setItem('isLoggedIn_senayan', 'true');
+    sessionStorage.setItem('senayan_auth_time', String(Date.now()));
   };
+
+  const handleLogout = () => {
+    sessionStorage.clear();
+    localStorage.removeItem('isLoggedIn_senayan');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userName');
+    setIsLoggedIn(false);
+    setUserRole('pimpinan');
+    setUserName('Dr. H. Anggota DPR');
+  };
+
+  // Activity & 30-minute Inactivity Session Listener
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    const handleUserActivity = () => {
+      const lastActive = sessionStorage.getItem('senayan_auth_time');
+      if (lastActive && Date.now() - Number(lastActive) > THIRTY_MIN_MS) {
+        handleLogout();
+      } else {
+        sessionStorage.setItem('senayan_auth_time', String(Date.now()));
+      }
+    };
+
+    const interval = setInterval(handleUserActivity, 60000);
+    window.addEventListener('mousemove', handleUserActivity);
+    window.addEventListener('keydown', handleUserActivity);
+    window.addEventListener('click', handleUserActivity);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('mousemove', handleUserActivity);
+      window.removeEventListener('keydown', handleUserActivity);
+      window.removeEventListener('click', handleUserActivity);
+    };
+  }, [isLoggedIn]);
 
   // URL Parameter Check for Public Absen Mode (e.g. ?absen=G-2026-001)
   const [publicAbsenActivityId, setPublicAbsenActivityId] = useState<string | null>(null);
@@ -348,14 +399,7 @@ export default function App() {
         searchQuery={filter.searchQuery}
         onSearchQueryChange={(q) => setFilter(prev => ({...prev, searchQuery: q}))}
         onOpenLoginModal={() => setIsLoginModalOpen(true)}
-        onLogout={() => {
-          localStorage.removeItem('isLoggedIn_senayan');
-          localStorage.removeItem('userRole');
-          localStorage.removeItem('userName');
-          setIsLoggedIn(false);
-          setUserRole('pimpinan');
-          setUserName('Dr. H. Anggota DPR');
-        }}
+        onLogout={handleLogout}
         onOpenGoogleFormModal={() => setIsGoogleFormModalOpen(true)}
         onOpenExcelModal={() => setIsExcelModalOpen(true)}
         onOpenSyncLogModal={() => setIsSyncLogModalOpen(true)}
