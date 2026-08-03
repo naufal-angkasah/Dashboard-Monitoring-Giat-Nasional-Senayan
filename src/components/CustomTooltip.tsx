@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 
 interface CustomTooltipProps {
   content: string;
@@ -6,7 +6,6 @@ interface CustomTooltipProps {
   badge?: string;
   category?: 'MPR' | 'DPR' | 'EBY Connect' | string;
   children: React.ReactNode;
-  position?: 'top' | 'bottom';
 }
 
 const CATEGORY_GRADIENTS: Record<string, string> = {
@@ -21,60 +20,103 @@ export const CustomTooltip: React.FC<CustomTooltipProps> = ({
   badge,
   category = 'MPR',
   children,
-  position = 'top',
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const [coords, setCoords] = useState<{ top: number; left: number; isTop: boolean }>({ top: 0, left: 0, isTop: true });
+
+  const handleMouseEnter = () => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const viewportWidth = window.innerWidth;
+
+      // Smart position calculation:
+      // If cursor/row is near the top of the viewport (< 240px or in upper half), show tooltip BELOW (isTop = false)
+      // Otherwise, show tooltip ABOVE (isTop = true)
+      const isTop = rect.top >= 240 && rect.top >= viewportHeight / 2;
+
+      let top = isTop ? rect.top - 10 : rect.bottom + 10;
+      
+      // Calculate horizontal center clamped to screen boundaries
+      const tooltipWidth = Math.min(340, viewportWidth - 32);
+      let left = rect.left + rect.width / 2;
+      left = Math.max(16 + tooltipWidth / 2, Math.min(viewportWidth - 16 - tooltipWidth / 2, left));
+
+      setCoords({ top, left, isTop });
+      setIsHovered(true);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+  };
+
   const badgeClass = CATEGORY_GRADIENTS[category] || 'from-blue-500/20 to-indigo-500/10 border-blue-500/40 text-blue-300';
 
-  const positionClasses = position === 'top'
-    ? 'bottom-full mb-2 left-1/2 -translate-x-1/2'
-    : 'top-full mt-2 left-1/2 -translate-x-1/2';
-
-  const arrowClasses = position === 'top'
-    ? 'top-full left-1/2 -translate-x-1/2 border-t-slate-900 border-x-transparent border-b-transparent'
-    : 'bottom-full left-1/2 -translate-x-1/2 border-b-slate-900 border-x-transparent border-t-transparent';
-
   return (
-    <div className="relative group/tooltip inline-block w-full">
+    <div 
+      ref={containerRef}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      className="inline-block w-full cursor-pointer"
+    >
       {children}
 
-      {/* Floating Animated Tooltip Card */}
-      <div 
-        className={`fixed sm:absolute ${positionClasses} z-50 w-72 sm:w-80 pointer-events-none opacity-0 scale-95 group-hover/tooltip:opacity-100 group-hover/tooltip:scale-100 transition-all duration-200 ease-out`}
-        style={{ filter: 'drop-shadow(0 20px 25px rgba(15, 23, 42, 0.45))' }}
-      >
-        <div className="bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 rounded-2xl p-3.5 text-white font-sans text-xs leading-relaxed">
-          {/* Tooltip Header Badge */}
-          <div className="flex items-center justify-between gap-2 mb-1.5 pb-1.5 border-b border-slate-800">
-            <span className={`bg-gradient-to-r ${badgeClass} border px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider`}>
-              {category}
-            </span>
-            {badge && (
-              <span className="text-[10px] text-slate-400 font-semibold truncate max-w-[150px]">
-                {badge}
+      {/* Floating Viewport-Fixed Tooltip Card (Breaks out of all overflow boundaries) */}
+      {isHovered && (
+        <div
+          className="fixed z-[9999] pointer-events-none transition-all duration-150 ease-out"
+          style={{
+            top: `${coords.top}px`,
+            left: `${coords.left}px`,
+            transform: coords.isTop ? 'translate(-50%, -100%)' : 'translate(-50%, 0)',
+            width: 'min(340px, calc(100vw - 32px))',
+          }}
+        >
+          <div className="bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 rounded-2xl p-4 text-white font-sans text-xs shadow-2xl shadow-slate-950/70 leading-relaxed border-t-slate-600/80">
+            {/* Header Badge */}
+            <div className="flex items-center justify-between gap-2 mb-2 pb-1.5 border-b border-slate-800">
+              <span className={`bg-gradient-to-r ${badgeClass} border px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider`}>
+                {category}
               </span>
+              {badge && (
+                <span className="text-[10px] text-slate-400 font-semibold truncate max-w-[160px]">
+                  {badge}
+                </span>
+              )}
+            </div>
+
+            {/* Title Header */}
+            {title && (
+              <p className="font-extrabold text-blue-300 text-xs mb-1">
+                {title}
+              </p>
             )}
+
+            {/* Full Content */}
+            <p className="font-bold text-slate-100 leading-normal text-xs break-words">
+              "{content}"
+            </p>
+
+            <div className="mt-2.5 pt-1.5 border-t border-slate-800/80 flex items-center justify-between text-[9px] text-slate-400 font-mono">
+              <span className="flex items-center gap-1">
+                <span>ℹ️</span> Teks Lengkap Nama Kegiatan
+              </span>
+              <span className="text-emerald-400 font-bold uppercase">Terverifikasi</span>
+            </div>
           </div>
 
-          {/* Optional Title Header */}
-          {title && (
-            <p className="font-extrabold text-blue-300 text-xs mb-1">
-              {title}
-            </p>
-          )}
-
-          {/* Full Text Content */}
-          <p className="font-bold text-slate-100 leading-normal text-xs break-words">
-            "{content}"
-          </p>
-
-          <p className="text-[9px] text-slate-400 mt-2 italic font-mono flex items-center gap-1">
-            <span>ℹ️</span> Teks lengkap Nama Kegiatan (Terverifikasi)
-          </p>
+          {/* Pointer Arrow */}
+          <div
+            className={`absolute left-1/2 -translate-x-1/2 w-0 h-0 border-x-8 border-x-transparent ${
+              coords.isTop
+                ? 'top-full border-t-8 border-t-slate-900/95'
+                : 'bottom-full border-b-8 border-b-slate-900/95'
+            }`}
+          />
         </div>
-
-        {/* Pointer Arrow */}
-        <div className={`absolute w-0 h-0 border-4 ${arrowClasses}`} />
-      </div>
+      )}
     </div>
   );
 };
