@@ -1,5 +1,5 @@
 import { ActivityItem, EbyConnectProgram, SyncLog, AttendanceRecord } from '../types';
-import { SHEET_ACTIVITIES, SHEET_ATTENDANCE_RECORDS } from './sheetData';
+import { SHEET_ACTIVITIES, SHEET_ATTENDANCE_RECORDS, SHEET_EBY_PROGRAMS } from './sheetData';
 
 export const INITIAL_ACTIVITIES: ActivityItem[] = [
   ...SHEET_ACTIVITIES,
@@ -221,6 +221,7 @@ export const INITIAL_ACTIVITIES: ActivityItem[] = [
 ];
 
 export const INITIAL_EBY_PROGRAMS: EbyConnectProgram[] = [
+  ...SHEET_EBY_PROGRAMS,
   {
     id: 'EBY-2026-001',
     tahun: '2026',
