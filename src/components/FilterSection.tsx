@@ -102,8 +102,14 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
   };
 
   return (
-    <div className="bg-white border border-slate-200/80 p-5 mb-8 rounded-2xl shadow-xs">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 pb-4 border-b border-slate-100">
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: false, amount: 0.2 }}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
+      className="bg-white border border-slate-200/80 p-3.5 sm:p-4 mt-3 mb-3.5 rounded-2xl shadow-xs"
+    >
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3 pb-3 border-b border-slate-100">
         <div className="flex items-center gap-2.5">
           <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
             <SlidersHorizontal className="w-4 h-4" />
@@ -456,6 +462,6 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
           </div>
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   );
 };

@@ -11,6 +11,7 @@ import { GoogleFormModal } from './components/GoogleFormModal';
 import { ExcelUploadModal } from './components/ExcelUploadModal';
 import { SyncLogModal } from './components/SyncLogModal';
 import { LoginModal } from './components/LoginModal';
+import { LoginScreen } from './components/LoginScreen';
 import { AbsenGeneratorModal } from './components/AbsenGeneratorModal';
 import { PublicAbsenView } from './components/PublicAbsenView';
 import { GoogleSheetConfigModal } from './components/GoogleSheetConfigModal';
@@ -45,20 +46,25 @@ export default function App() {
 
   // Active Mode & Role
   const [activeCategoryTab, setActiveCategoryTab] = useState<'ALL' | 'MPR' | 'DPR' | 'EBY Connect'>('ALL');
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
+    return localStorage.getItem('isLoggedIn_senayan') === 'true';
+  });
   const [userRole, setUserRole] = useState<UserRole>(() => {
     const saved = localStorage.getItem('userRole');
-    return (saved as UserRole) || 'admin';
+    return (saved as UserRole) || 'pimpinan';
   });
   const [userName, setUserName] = useState<string>(() => {
     const saved = localStorage.getItem('userName');
-    return saved || 'Operator Tim Teknis';
+    return saved || 'Dr. H. Anggota DPR';
   });
 
   const handleLoginSuccess = (role: UserRole, name: string) => {
     setUserRole(role);
     setUserName(name);
+    setIsLoggedIn(true);
     localStorage.setItem('userRole', role);
     localStorage.setItem('userName', name);
+    localStorage.setItem('isLoggedIn_senayan', 'true');
   };
 
   // URL Parameter Check for Public Absen Mode (e.g. ?absen=G-2026-001)
@@ -325,6 +331,10 @@ export default function App() {
     );
   }
 
+  if (!isLoggedIn) {
+    return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
+  }
+
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 font-sans pb-16 antialiased">
       {/* Header Bar */}
@@ -337,10 +347,12 @@ export default function App() {
         onSearchQueryChange={(q) => setFilter(prev => ({...prev, searchQuery: q}))}
         onOpenLoginModal={() => setIsLoginModalOpen(true)}
         onLogout={() => {
-          setUserRole('public');
-          setUserName('');
+          localStorage.removeItem('isLoggedIn_senayan');
           localStorage.removeItem('userRole');
           localStorage.removeItem('userName');
+          setIsLoggedIn(false);
+          setUserRole('pimpinan');
+          setUserName('Dr. H. Anggota DPR');
         }}
         onOpenGoogleFormModal={() => setIsGoogleFormModalOpen(true)}
         onOpenExcelModal={() => setIsExcelModalOpen(true)}
@@ -354,8 +366,17 @@ export default function App() {
       />
 
       {/* Main Container */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 sm:py-4">
         
+        {/* Filter Section */}
+        {activeCategoryTab !== 'EBY Connect' && (
+          <FilterSection
+            filter={filter}
+            setFilter={setFilter}
+            activities={activities}
+          />
+        )}
+
         {/* Executive Summary Cards */}
         <ExecutiveSummaryCards
           stats={stats}
@@ -375,12 +396,6 @@ export default function App() {
           />
         ) : (
           <>
-            {/* Filter Section */}
-            <FilterSection
-              filter={filter}
-              setFilter={setFilter}
-              activities={activities}
-            />
 
             {/* Analytics & Charts */}
             <ChartsSection
@@ -405,22 +420,15 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-12 bg-slate-900 text-slate-400 py-6 border-t-2 border-slate-950 font-mono text-xs text-center">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div>
-            <strong>Dashboard Monitoring Giat Senayan & EBY Connect</strong> • Giat MPR, DPR & EBY Connect Skala Nasional © 2026
+      <footer className="mt-10 bg-slate-900 text-slate-400 py-5 border-t border-slate-800 text-xs font-sans">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+          <div className="text-slate-300 font-medium">
+            <strong className="text-white font-bold">Dashboard Monitoring Giat Senayan & EBY Connect</strong> • Giat MPR, DPR & EBY Connect Skala Nasional &copy; 2026
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setIsDeploymentGuideOpen(true)}
-              className="text-amber-300 hover:underline font-bold cursor-pointer"
-            >
-              Panduan Deployment
-            </button>
-            <span>•</span>
-            <button
               onClick={() => setIsSheetConfigOpen(true)}
-              className="text-slate-300 hover:underline cursor-pointer"
+              className="text-blue-400 hover:text-blue-300 hover:underline font-semibold cursor-pointer transition-colors"
             >
               Spreadsheet Config
             </button>

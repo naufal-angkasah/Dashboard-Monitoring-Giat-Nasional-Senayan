@@ -169,7 +169,13 @@ export const ExecutiveSummaryCards: React.FC<ExecutiveSummaryCardsProps> = ({
 
   // Standard Mode (ALL, MPR, DPR)
   return (
-    <div className="mb-8 space-y-4">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: false, amount: 0.15 }}
+      transition={{ duration: 0.4, ease: 'easeOut' }}
+      className="mb-4 space-y-3"
+    >
       {/* Hero STELLAR Executive Banner */}
       <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-800 text-white rounded-3xl p-6 sm:p-8 shadow-md relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="relative z-10 max-w-2xl">
@@ -343,6 +349,6 @@ export const ExecutiveSummaryCards: React.FC<ExecutiveSummaryCardsProps> = ({
           </span>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };

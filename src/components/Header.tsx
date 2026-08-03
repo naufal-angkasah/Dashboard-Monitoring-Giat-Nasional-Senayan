@@ -84,16 +84,6 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-2 overflow-x-auto pb-0.5 sm:pb-0 scrollbar-none">
             <div className="flex items-center gap-2 shrink-0">
               <button
-                onClick={onOpenDeploymentGuideModal}
-                className="flex items-center gap-1 hover:text-blue-700 text-blue-600 transition-colors text-[10px] sm:text-xs font-semibold cursor-pointer whitespace-nowrap"
-              >
-                <Rocket className="w-3 h-3" />
-                <span>Panduan</span>
-              </button>
-
-              <span className="text-slate-300">|</span>
-
-              <button
                 onClick={onOpenSyncLogModal}
                 className="flex items-center gap-1 hover:text-slate-900 transition-colors text-[10px] sm:text-xs cursor-pointer text-slate-600 font-medium whitespace-nowrap"
               >

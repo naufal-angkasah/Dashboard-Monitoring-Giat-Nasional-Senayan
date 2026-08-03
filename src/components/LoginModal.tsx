@@ -58,22 +58,22 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         >
           {/* Header */}
           <div className="p-5 pb-4 border-b border-slate-100 flex items-start justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 bg-blue-600 text-white rounded-xl flex items-center justify-center shadow-md shadow-blue-500/20 shrink-0">
                 <Lock className="w-5 h-5 text-white" />
               </div>
-              <div>
-                <h3 className="font-extrabold text-base text-slate-900 tracking-tight leading-snug">
-                  AUTENTIKASI & KELOLA AKUN
+              <div className="min-w-0">
+                <h3 className="font-extrabold text-base text-slate-900 tracking-tight leading-snug truncate">
+                  Autentikasi & Kelola Akun
                 </h3>
-                <p className="text-xs text-slate-500 font-medium">
+                <p className="text-xs text-slate-500 font-medium truncate">
                   Sistem Autentikasi Giat Senayan & EBY Connect
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 cursor-pointer transition-colors"
+              className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer transition-colors shrink-0 ml-2"
             >
               <X className="w-4 h-4" />
             </button>

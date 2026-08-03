@@ -220,12 +220,12 @@ export const AbsenGeneratorModal: React.FC<AbsenGeneratorModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="bg-slate-100 p-3.5 border-t-2 border-slate-900 flex justify-end gap-2">
+        <div className="bg-slate-50 p-3.5 border-t border-slate-200 flex justify-end gap-2">
           <button
             onClick={onClose}
-            className="bg-slate-900 text-white px-4 py-2 rounded text-xs font-bold hover:bg-slate-800 cursor-pointer"
+            className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs"
           >
-            Tutup Modal
+            Tutup
           </button>
         </div>
 

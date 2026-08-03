@@ -127,7 +127,13 @@ export const DataTable: React.FC<DataTableProps> = ({
   };
 
   return (
-    <div className="bg-white border border-slate-200/80 p-5 mb-8 rounded-2xl shadow-xs">
+    <motion.div
+      initial={{ opacity: 0, y: 25 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: false, amount: 0.1 }}
+      transition={{ duration: 0.4, ease: 'easeOut' }}
+      className="bg-white border border-slate-200/80 p-5 mb-8 rounded-2xl shadow-xs"
+    >
       {/* HEADER SECTION */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-4 border-b border-slate-100">
         <div>
@@ -346,6 +352,6 @@ export const DataTable: React.FC<DataTableProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };

@@ -176,7 +176,13 @@ export const ChartsSection: React.FC<ChartsSectionProps> = ({ filteredActivities
   };
 
   return (
-    <div className="space-y-6 mb-8">
+    <motion.div
+      initial={{ opacity: 0, y: 25 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: false, amount: 0.15 }}
+      transition={{ duration: 0.4, ease: 'easeOut' }}
+      className="space-y-6 mb-8"
+    >
       {/* SECTION TITLE */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
@@ -421,6 +427,6 @@ export const ChartsSection: React.FC<ChartsSectionProps> = ({ filteredActivities
         </motion.div>
 
       </div>
-    </div>
+    </motion.div>
   );
 };
