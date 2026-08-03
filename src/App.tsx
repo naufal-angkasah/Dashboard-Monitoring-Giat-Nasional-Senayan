@@ -276,7 +276,7 @@ export default function App() {
     });
   }, [activities, filter, activeCategoryTab]);
 
-  // Executive Summary Statistics
+  // Executive Summary Statistics (reflects current tab + filter selection — used for content cards)
   const stats: ExecutiveSummaryStats = useMemo(() => {
     const totalGiat = filteredActivities.length;
     const totalPeserta = filteredActivities.reduce((sum, a) => sum + a.jumlahPeserta, 0);
@@ -305,6 +305,23 @@ export default function App() {
       percentDPR,
     };
   }, [filteredActivities]);
+
+  // Global Stats — always from ALL activities regardless of active tab.
+  // Used exclusively for sidebar badge counts so they never change when switching tabs.
+  const globalStats: ExecutiveSummaryStats = useMemo(() => {
+    const giatMPR = activities.filter(a => a.kategoriGiat === 'MPR').length;
+    const giatDPR = activities.filter(a => a.kategoriGiat === 'DPR').length;
+    const giatEBY = activities.filter(a => a.kategoriGiat === 'EBY Connect').length;
+    const totalGiat = activities.length;
+    const totalPeserta = activities.reduce((sum, a) => sum + a.jumlahPeserta, 0);
+    const totalInstansi = new Set(activities.map(a => a.asalInstansi)).size;
+    const totalSegmentasi = new Set(activities.map(a => a.segmentasiPeserta)).size;
+    const totalTema = new Set(activities.map(a => a.temaGiat)).size;
+    const denominator = giatMPR + giatDPR || 1;
+    const percentMPR = Math.round((giatMPR / denominator) * 100);
+    const percentDPR = Math.round((giatDPR / denominator) * 100);
+    return { totalGiat, totalPeserta, totalInstansi, totalSegmentasi, totalTema, giatMPR, giatDPR, giatEBY, percentMPR, percentDPR };
+  }, [activities]);
 
   // Handlers for Add, Update & Sync
   const handleAddNewActivity = async (newAct: ActivityItem) => {
@@ -486,7 +503,7 @@ export default function App() {
           setActiveCategoryTab={handleTabChange}
           userRole={userRole}
           userName={userName}
-          stats={stats}
+          stats={globalStats}
           totalEbyPrograms={ebyPrograms.length}
           totalAttendanceRecords={attendanceRecords.length}
           isOpenMobile={isSidebarMobileOpen}
