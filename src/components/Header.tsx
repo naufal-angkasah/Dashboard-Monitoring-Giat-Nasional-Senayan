@@ -222,15 +222,7 @@ export const Header: React.FC<HeaderProps> = ({
                   <span>Config Sheet</span>
                 </motion.button>
 
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={onOpenGoogleFormModal}
-                  className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white px-2.5 py-1.5 sm:px-3.5 sm:py-2 text-[11px] sm:text-xs font-semibold rounded-xl shadow-xs cursor-pointer transition-all shrink-0 whitespace-nowrap"
-                >
-                  <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400" />
-                  <span>+ Input Giat</span>
-                </motion.button>
+            {/* Removed + Input Giat button per user request */}
               </>
             )}
           </div>
