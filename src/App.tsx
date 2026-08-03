@@ -8,6 +8,7 @@ import { ChartsSection } from './components/ChartsSection';
 import { DataTable } from './components/DataTable';
 import { EbyConnectView } from './components/EbyConnectView';
 import { DaftarHadirView } from './components/DaftarHadirView';
+import { FormInputGiatModal } from './components/FormInputGiatModal';
 import { DetailModal } from './components/DetailModal';
 import { GoogleFormModal } from './components/GoogleFormModal';
 import { ExcelUploadModal } from './components/ExcelUploadModal';
@@ -167,6 +168,7 @@ export default function App() {
   const [isSheetConfigOpen, setIsSheetConfigOpen] = useState<boolean>(false);
   const [isDeploymentGuideOpen, setIsDeploymentGuideOpen] = useState<boolean>(false);
   const [isSidebarMobileOpen, setIsSidebarMobileOpen] = useState<boolean>(false);
+  const [isFormInputGiatOpen, setIsFormInputGiatOpen] = useState<boolean>(false);
 
   // Firestore Real-Time Listener
   useEffect(() => {
@@ -457,6 +459,7 @@ export default function App() {
               activities={activities}
               userRole={userRole}
               onOpenAbsenGenerator={() => setIsAbsenGeneratorOpen(true)}
+              onOpenFormInputGiat={() => setIsFormInputGiatOpen(true)}
             />
           ) : activeCategoryTab === 'EBY Connect' ? (
             <EbyConnectView
@@ -542,6 +545,15 @@ export default function App() {
       <DeploymentGuideModal
         isOpen={isDeploymentGuideOpen}
         onClose={() => setIsDeploymentGuideOpen(false)}
+      />
+
+      {/* Form Input Giat Senayan Modal (Firebase Integrated) */}
+      <FormInputGiatModal
+        isOpen={isFormInputGiatOpen}
+        onClose={() => setIsFormInputGiatOpen(false)}
+        onSave={handleAddNewActivity}
+        userRole={userRole}
+        userName={userName}
       />
 
       {/* Input Form Simulation Modal */}
