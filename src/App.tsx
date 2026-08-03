@@ -336,7 +336,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900 font-sans pb-16 antialiased">
+    <div className="min-h-screen bg-slate-100 text-slate-900 font-sans flex flex-col justify-between antialiased">
       {/* Header Bar */}
       <Header
         activeCategoryTab={activeCategoryTab}
@@ -366,7 +366,7 @@ export default function App() {
       />
 
       {/* Main Container */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 sm:py-4">
+      <main className="max-w-7xl w-full mx-auto px-4 sm:px-6 py-3.5 sm:py-4 flex-1">
         
         {/* Filter Section */}
         {activeCategoryTab !== 'EBY Connect' && (
@@ -420,7 +420,7 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-10 bg-slate-900 text-slate-400 py-5 border-t border-slate-800 text-xs font-sans">
+      <footer className="mt-auto bg-slate-900 text-slate-400 py-5 border-t border-slate-800 text-xs font-sans">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
           <div className="text-slate-300 font-medium">
             <strong className="text-white font-bold">Dashboard Monitoring Giat Senayan & EBY Connect</strong> • Giat MPR, DPR & EBY Connect Skala Nasional &copy; 2026
