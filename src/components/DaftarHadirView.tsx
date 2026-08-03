@@ -114,7 +114,7 @@ export const DaftarHadirView: React.FC<DaftarHadirViewProps> = ({
         </div>
 
         <div className="flex items-center gap-2.5 z-10 shrink-0">
-          {(userRole === 'admin' || userRole === 'pimpinan') && (
+          {userRole === 'admin' && (
             <motion.button
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
