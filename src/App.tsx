@@ -170,7 +170,7 @@ export default function App() {
   const [isSidebarMobileOpen, setIsSidebarMobileOpen] = useState<boolean>(false);
   const [isFormInputGiatOpen, setIsFormInputGiatOpen] = useState<boolean>(false);
 
-  // Firestore Real-Time Listener
+  // Firestore Real-Time Listener for Activities
   useEffect(() => {
     let unsubscribe: () => void;
     try {
@@ -181,7 +181,12 @@ export default function App() {
           snapshot.forEach((docSnap) => {
             loaded.push({ id: docSnap.id, ...docSnap.data() } as ActivityItem);
           });
-          setActivities(loaded);
+          setActivities(prev => {
+            const map = new Map<string, ActivityItem>();
+            prev.forEach(a => map.set(a.id, a));
+            loaded.forEach(a => map.set(a.id, a));
+            return Array.from(map.values());
+          });
         }
       }, (err) => {
         console.warn('Firestore offline or snapshot error, fallback to local state:', err);
@@ -194,8 +199,37 @@ export default function App() {
     };
   }, []);
 
+  // Firestore Real-Time Listener for Attendance
+  useEffect(() => {
+    let unsubscribe: () => void;
+    try {
+      const attRef = collection(db, 'attendance');
+      unsubscribe = onSnapshot(attRef, (snapshot) => {
+        if (!snapshot.empty) {
+          const loaded: AttendanceRecord[] = [];
+          snapshot.forEach((docSnap) => {
+            loaded.push({ id: docSnap.id, ...docSnap.data() } as AttendanceRecord);
+          });
+          setAttendanceRecords(prev => {
+            const map = new Map<string, AttendanceRecord>();
+            prev.forEach(r => map.set(r.id, r));
+            loaded.forEach(r => map.set(r.id, r));
+            return Array.from(map.values());
+          });
+        }
+      }, (err) => {
+        console.warn('Firestore attendance offline or snapshot error:', err);
+      });
+    } catch (e) {
+      console.warn('Firestore attendance init error:', e);
+    }
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
+
   // Sync Tab Switcher with Filter State
-  const handleTabChange = (tab: 'ALL' | 'MPR' | 'DPR' | 'EBY Connect') => {
+  const handleTabChange = (tab: 'ALL' | 'MPR' | 'DPR' | 'EBY Connect' | 'daftar_hadir') => {
     setActiveCategoryTab(tab);
     if (tab === 'MPR') {
       setFilter(prev => ({ ...prev, kategoriGiat: 'MPR' }));
@@ -276,9 +310,28 @@ export default function App() {
   const handleAddNewActivity = async (newAct: ActivityItem) => {
     setActivities(prev => [newAct, ...prev]);
 
-    // Save to Firestore
+    // Automatically create attendance record matching Google Sheets format
+    const newAttendance: AttendanceRecord = {
+      id: `ATT-${Date.now()}`,
+      activityId: newAct.id,
+      tahun: newAct.tahun || '2026',
+      kategoriGiat: newAct.kategoriGiat,
+      jenisGiat: newAct.jenisGiat,
+      temaGiat: newAct.temaGiat,
+      namaGiat: newAct.namaGiat,
+      namaPeserta: newAct.namaPeserta || 'Peserta Giat',
+      instansi: newAct.asalInstansi || '—',
+      segmentasiPeserta: newAct.segmentasiPeserta || 'Umum',
+      kontak: newAct.kontak || '—',
+      waktuHadir: new Date().toISOString().replace('T', ' ').slice(0, 16),
+      statusKehadiran: 'Hadir',
+    };
+    setAttendanceRecords(prev => [newAttendance, ...prev]);
+
+    // Save both to Firestore
     try {
       await setDoc(doc(db, 'activities', newAct.id), newAct);
+      await setDoc(doc(db, 'attendance', newAttendance.id), newAttendance);
     } catch (e) {
       console.warn('Firestore write error:', e);
     }
@@ -349,26 +402,36 @@ export default function App() {
   };
 
   const handleSubmitAttendance = async (record: Omit<AttendanceRecord, 'id'>) => {
+    const matchedActivity = activities.find(a => a.id === record.activityId);
     const fullRecord: AttendanceRecord = {
       ...record,
       id: `ATT-${Date.now()}`,
+      tahun: record.tahun || matchedActivity?.tahun || '2026',
+      kategoriGiat: record.kategoriGiat || matchedActivity?.kategoriGiat || 'MPR',
+      jenisGiat: record.jenisGiat || matchedActivity?.jenisGiat || 'FDA',
+      temaGiat: record.temaGiat || matchedActivity?.temaGiat || 'Umum',
+      namaGiat: record.namaGiat || matchedActivity?.namaGiat || 'Kegiatan Senayan',
+      segmentasiPeserta: record.segmentasiPeserta || matchedActivity?.segmentasiPeserta || 'Umum',
     };
     setAttendanceRecords(prev => [fullRecord, ...prev]);
 
     // Save attendance to Firestore
     try {
-      await addDoc(collection(db, 'attendance'), fullRecord);
+      await setDoc(doc(db, 'attendance', fullRecord.id), fullRecord);
     } catch (e) {
       console.warn('Firestore attendance save error:', e);
     }
 
-    // Increment activity participant count in state
-    setActivities(prev => prev.map(a => {
-      if (a.id === record.activityId) {
-        return { ...a, jumlahPeserta: a.jumlahPeserta + 1 };
+    // Increment activity participant count in state & Firestore
+    if (matchedActivity) {
+      const updatedAct = { ...matchedActivity, jumlahPeserta: matchedActivity.jumlahPeserta + 1 };
+      setActivities(prev => prev.map(a => a.id === matchedActivity.id ? updatedAct : a));
+      try {
+        await setDoc(doc(db, 'activities', matchedActivity.id), updatedAct);
+      } catch (e) {
+        console.warn('Firestore activity update error:', e);
       }
-      return a;
-    }));
+    }
   };
 
   // Render Public Absen Page if URL query param exists
