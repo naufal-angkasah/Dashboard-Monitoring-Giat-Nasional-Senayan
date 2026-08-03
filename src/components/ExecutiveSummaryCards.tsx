@@ -179,10 +179,6 @@ export const ExecutiveSummaryCards: React.FC<ExecutiveSummaryCardsProps> = ({
       {/* Hero STELLAR Executive Banner */}
       <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-800 text-white rounded-3xl p-6 sm:p-8 shadow-md relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="relative z-10 max-w-2xl">
-          <div className="bg-white/10 backdrop-blur-md text-white border border-white/20 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider w-fit mb-3 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            STELLAR EXECUTIVE CORE v3.0
-          </div>
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white leading-tight">
             Monitoring Kinerja Giat Senayan (MPR & DPR RI)
           </h2>
